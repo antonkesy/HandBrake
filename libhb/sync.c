@@ -3020,15 +3020,15 @@ static int syncVideoWork( hb_work_object_t * w, hb_buffer_t ** buf_in,
     hb_buffer_t * in = *buf_in;
 
 #if HB_PROJECT_FEATURE_QSV
-    // Fix of LA case allowing use of LA up to 40 in full encode path,
-    // as currently for such support we cannot allocate >64 slices per texture
-    // due to MSFT limitation, not impacting other cases
+    // Workaround: QSV lookahead in the full QSV path, see
+    // workaround_lookahead_limits() in qsv_common.c. Keep the video
+    // queue short, the D3D11 texture has no surfaces to spare.
+    // The encoder enables lookahead after sync is initialized.
     hb_job_t *job = pv->common->job;
     if (job->hw_pix_fmt == AV_PIX_FMT_QSV &&
-        job->qsv_ctx->la_is_enabled == 1)
+        job->qsv_ctx != NULL && job->qsv_ctx->la_is_enabled)
     {
         pv->stream->max_len = SYNC_MIN_VIDEO_QUEUE_LEN;
-        pv->common->job->qsv_ctx->la_is_enabled++;
     }
 #endif
 

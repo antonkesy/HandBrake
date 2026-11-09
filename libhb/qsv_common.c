@@ -189,6 +189,134 @@ static void probe_encoders(AVBufferRef *device, hb_qsv_adapter_t *adapter)
     av_log_set_level(log_level);
 }
 
+/*
+ * Workarounds
+ *
+ * Everything below handles a specific driver, hardware or API gap that
+ * FFmpeg doesn't cover. Each workaround is self-contained, so it can be
+ * removed on its own once it isn't needed anymore.
+ */
+
+#if defined(_WIN32) || defined(__MINGW32__)
+/*
+ * Workaround: VVC decoder detection on Windows.
+ *
+ * The D3D11 decoder profile for VVC isn't defined in the Windows SDK
+ * headers nor in FFmpeg, so it can't be read from the decoder profiles
+ * like the other codecs. Decode a single 64x64 Main 10 frame instead.
+ *
+ * Generated with:
+ * ffmpeg -f lavfi -i color=c=gray:size=64x64:rate=25 -frames:v 1
+ *        -pix_fmt yuv420p10le -c:v libvvenc -qp 63 -f vvc vvc.bin
+ */
+static const uint8_t vvc_probe_frame[] =
+{
+    0x00, 0x00, 0x00, 0x01, 0x00, 0xa1, 0x88, 0x00, 0x00, 0x00, 0x01, 0x00,
+    0x79, 0x00, 0xad, 0x02, 0x10, 0x80, 0x00, 0x00, 0x80, 0x82, 0x04, 0x11,
+    0xa8, 0x01, 0xcd, 0xd3, 0x6e, 0x99, 0x1a, 0x45, 0x26, 0xf3, 0x84, 0xd9,
+    0x58, 0xc1, 0x02, 0x09, 0xc0, 0x0c, 0xa0, 0xc5, 0x84, 0x21, 0x83, 0x11,
+    0x08, 0x19, 0x22, 0x0d, 0x48, 0x7a, 0x3d, 0x5a, 0x92, 0xf2, 0x49, 0xa9,
+    0x2c, 0x91, 0x16, 0xa2, 0x2f, 0x11, 0x26, 0xa2, 0x24, 0x52, 0x44, 0x49,
+    0x92, 0x22, 0x4d, 0x46, 0x59, 0x21, 0x0b, 0x50, 0x85, 0xe1, 0x0b, 0xd5,
+    0xa9, 0x2f, 0x25, 0xea, 0x19, 0x41, 0x8b, 0x10, 0x0c, 0x58, 0x80, 0x81,
+    0x08, 0x10, 0x10, 0x2a, 0x10, 0x20, 0x20, 0x69, 0x08, 0x10, 0x10, 0x2c,
+    0x40, 0x80, 0x81, 0x10, 0x40, 0x40, 0xb2, 0x08, 0x08, 0x12, 0x10, 0x10,
+    0x64, 0x08, 0x11, 0x08, 0x10, 0x2c, 0x84, 0x08, 0x12, 0x20, 0x41, 0xa0,
+    0x81, 0x24, 0x10, 0x70, 0x83, 0x20, 0x45, 0xa1, 0x04, 0x90, 0x87, 0x10,
+    0xd0, 0x97, 0x23, 0x95, 0xff, 0xa5, 0xd9, 0x7f, 0x9c, 0x90, 0x00, 0x00,
+    0x03, 0x00, 0x10, 0x00, 0x00, 0x03, 0x01, 0x91, 0x88, 0x00, 0x00, 0x00,
+    0x01, 0x00, 0x81, 0x00, 0x00, 0x41, 0x02, 0x08, 0x89, 0x07, 0xee, 0x08,
+    0x00, 0x00, 0x01, 0x00, 0x39, 0xc4, 0x01, 0x01, 0xa4, 0x97, 0x80, 0x06,
+    0xbe, 0xf6, 0xf0,
+};
+
+static int workaround_probe_vvc_decoder(AVBufferRef *device)
+{
+    const AVCodec  *codec   = avcodec_find_decoder_by_name("vvc_qsv");
+    AVCodecContext *context = codec ? avcodec_alloc_context3(codec) : NULL;
+    AVPacket       *pkt     = av_packet_alloc();
+    AVFrame        *frame   = av_frame_alloc();
+    int             decoded = 0;
+
+    // the probe fails on purpose on older hardware, don't log the errors
+    int log_level = av_log_get_level();
+    av_log_set_level(AV_LOG_QUIET);
+
+    if (context != NULL && pkt != NULL && frame != NULL &&
+        av_new_packet(pkt, sizeof(vvc_probe_frame)) == 0)
+    {
+        memcpy(pkt->data, vvc_probe_frame, sizeof(vvc_probe_frame));
+        context->hw_device_ctx = av_buffer_ref(device);
+
+        if (hb_avcodec_open(context, codec, NULL, 1) == 0 &&
+            avcodec_send_packet(context, pkt) == 0 &&
+            avcodec_send_packet(context, NULL) == 0)
+        {
+            decoded = avcodec_receive_frame(context, frame) == 0;
+        }
+    }
+
+    av_log_set_level(log_level);
+    av_frame_free(&frame);
+    av_packet_free(&pkt);
+    hb_avcodec_free_context(&context);
+
+    return decoded;
+}
+#endif
+
+/*
+ * Workaround: lookahead limits (LA and LA_ICQ rate control, H.264 only).
+ *
+ * - a lookahead depth of 10 hangs some drivers, use at least 11
+ * - in the full QSV path the lookahead and the B-frames share the
+ *   surfaces of a single D3D11 texture, which can't hold more than
+ *   64 slices, so the depth and the B-frames have to fit in 48 surfaces
+ *   (the video queue in sync.c is limited for the same reason)
+ */
+#define HB_QSV_LA_DEPTH_DEFAULT          40
+#define HB_QSV_LA_DEPTH_MIN              11
+#define HB_QSV_LA_DEPTH_MAX              100
+#define HB_QSV_LA_FULL_PATH_SURFACES     48
+#define HB_QSV_LA_FULL_PATH_GOP_REF_DIST 8
+
+static void workaround_lookahead_limits(int full_path, int *depth, int *gop_ref_dist)
+{
+    int max_depth = HB_QSV_LA_DEPTH_MAX;
+
+    if (*depth <= 0)
+    {
+        *depth = HB_QSV_LA_DEPTH_DEFAULT;
+    }
+    if (full_path)
+    {
+        if (*gop_ref_dist > HB_QSV_LA_FULL_PATH_GOP_REF_DIST)
+        {
+            *gop_ref_dist = HB_QSV_LA_FULL_PATH_GOP_REF_DIST;
+        }
+        // with the default distance the driver may use up to 8
+        max_depth = HB_QSV_LA_FULL_PATH_SURFACES -
+                    (*gop_ref_dist > 0 ? *gop_ref_dist : HB_QSV_LA_FULL_PATH_GOP_REF_DIST);
+    }
+    *depth = av_clip(*depth, HB_QSV_LA_DEPTH_MIN, max_depth);
+}
+
+/*
+ * Workaround: extended BRC with CQP or lookahead.
+ *
+ * CQP with ExtBRC gives broken output with some drivers, and with
+ * lookahead some drivers change the async depth when ExtBRC is on.
+ */
+static void workaround_disable_extbrc(AVDictionary **av_opts)
+{
+    AVDictionaryEntry *extbrc = av_dict_get(*av_opts, "extbrc", NULL, 0);
+    if (extbrc != NULL && atoi(extbrc->value) > 0)
+    {
+        hb_log("encavcodec: extbrc is not supported with CQP or lookahead, disabled");
+    }
+    av_dict_set(av_opts, "extbrc", "0", 0);
+}
+
 #if defined(_WIN32) || defined(__MINGW32__)
 
 static const GUID hb_IID_IDXGIDevice =
@@ -380,6 +508,12 @@ static void make_adapters_list(void)
         if (av_hwdevice_ctx_create_derived(&device, AV_HWDEVICE_TYPE_QSV, child, 0) == 0)
         {
             probe_encoders(device, &adapter);
+#if defined(_WIN32) || defined(__MINGW32__)
+            if (workaround_probe_vvc_decoder(device))
+            {
+                adapter.decoders |= QSV_CODEC_VVC;
+            }
+#endif
             av_buffer_unref(&device);
         }
         av_buffer_unref(&child);
@@ -677,8 +811,6 @@ static const char * const option_names[][2] =
     { "colorprim",       "color_primaries"         },
     { "transfer",        "color_trc"               },
     { "colormatrix",     "colorspace"              },
-    { "lookahead-depth", "look_ahead_depth"        },
-    { "la-depth",        "look_ahead_depth"        },
     { "lookahead-ds",    "look_ahead_downsampling" },
     { "la-ds",           "look_ahead_downsampling" },
     { "repeatpps",       "repeat_pps"              },
@@ -708,14 +840,19 @@ int hb_qsv_apply_encoder_options(hb_job_t *job, AVCodecContext *context, AVDicti
     const hb_qsv_adapter_t *adapter = get_adapter(job->hw_device_index);
     const int codec = codec_from_vcodec(job->vcodec);
 
+    const int full_path = job->hw_pix_fmt == AV_PIX_FMT_QSV;
+
     int   icq            = adapter != NULL && (adapter->icq & codec);
     int   lookahead      = 0;
+    int   la_depth       = -1;
+    int   gop_ref_dist   = -1;
     int   cqp_offsets[3] = { 0, 2, 4 };
     int   vbv_maxrate    = 0;
     int   vbv_bufsize    = 0;
     float vbv_init       = 0;
 
 #if defined(_WIN32) || defined(__MINGW32__)
+    // prefer the fixed function (VDENC) encoder on Windows
     if (adapter != NULL && (adapter->lowpower & codec))
     {
         av_dict_set(av_opts, "low_power", "1", 0);
@@ -811,6 +948,10 @@ int hb_qsv_apply_encoder_options(hb_job_t *job, AVCodecContext *context, AVDicti
         {
             lookahead = option_bool(value);
         }
+        else if (!strcasecmp(key, "lookahead-depth") || !strcasecmp(key, "la-depth"))
+        {
+            la_depth = atoi(value);
+        }
         else if (!strcasecmp(key, "lowpower"))
         {
             if (option_bool(value) && (adapter == NULL || (adapter->lowpower & codec) == 0))
@@ -824,7 +965,7 @@ int hb_qsv_apply_encoder_options(hb_job_t *job, AVCodecContext *context, AVDicti
         }
         else if (!strcasecmp(key, "gop-ref-dist"))
         {
-            av_dict_set_int(av_opts, "bf", FFMAX(atoi(value), 1) - 1, 0);
+            gop_ref_dist = atoi(value);
         }
         else if (!strcasecmp(key, "scenecut"))
         {
@@ -882,14 +1023,32 @@ int hb_qsv_apply_encoder_options(hb_job_t *job, AVCodecContext *context, AVDicti
                                                    1000 * vbv_bufsize * vbv_init;
         }
     }
+
+    if ((icq || lookahead) && (vbv_maxrate > 0 || vbv_bufsize > 0))
+    {
+        hb_log("encavcodec: %s rate control, ignoring VBV", lookahead ? "lookahead" : "ICQ");
+    }
+
     if (lookahead)
     {
+        workaround_lookahead_limits(full_path, &la_depth, &gop_ref_dist);
         av_dict_set(av_opts, "look_ahead", "1", 0);
+        av_dict_set_int(av_opts, "look_ahead_depth", la_depth, 0);
+    }
+    if (lookahead || (job->vquality > HB_INVALID_VIDEO_QUALITY && !icq))
+    {
+        workaround_disable_extbrc(av_opts);
+    }
+    if (gop_ref_dist > 0)
+    {
+        av_dict_set_int(av_opts, "bf", gop_ref_dist - 1, 0);
     }
     if (job->qsv_ctx != NULL)
     {
         job->qsv_ctx->la_is_enabled = lookahead;
     }
+
+    hb_log("encavcodec: using %s path", full_path ? "full QSV" : "encode-only");
 
     return 0;
 }
