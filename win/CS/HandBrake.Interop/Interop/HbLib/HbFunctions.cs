@@ -349,18 +349,6 @@ namespace HandBrake.Interop.Interop.HbLib
         [DllImport("hb", EntryPoint = "hb_get_cpu_platform", CallingConvention = CallingConvention.Cdecl)]
         public static extern int hb_get_cpu_platform();
 
-        [DllImport("hb", EntryPoint = "hb_qsv_get_platform", CallingConvention = CallingConvention.Cdecl)]
-        public static extern int hb_qsv_get_platform(int adapter_index);
-
-        [DllImport("hb", EntryPoint = "hb_qsv_hyper_encode_available", CallingConvention = CallingConvention.Cdecl)]
-        public static extern int hb_qsv_hyper_encode_available(int adapter_index);
-
-        [DllImport("hb", EntryPoint = "hb_qsv_hardware_generation", CallingConvention = CallingConvention.Cdecl)]
-        public static extern int hb_qsv_hardware_generation(int cpu_platform);
-
-        [DllImport("hb", EntryPoint = "hb_qsv_get_adapter_index", CallingConvention = CallingConvention.Cdecl)]
-        public static extern int hb_qsv_get_adapter_index();
-
         [DllImport("hb", EntryPoint = "hb_qsv_adapters_list", CallingConvention = CallingConvention.Cdecl)]
         public static extern IntPtr hb_qsv_adapters_list();
         

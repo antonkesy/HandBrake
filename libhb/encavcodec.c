@@ -52,10 +52,6 @@ struct hb_work_private_s
 
     int64_t              dts_delay;
 
-#if HB_PROJECT_FEATURE_QSV
-    qsv_data_t         qsv_data;
-#endif
-
     struct {
         int64_t          start;
         int64_t          duration;
@@ -109,14 +105,25 @@ static const char * const vp9_tune_names[] =
     "none", "screen", "film", NULL
 };
 
-static const char * const h264_qsv_profile_name[] =
+static const char * const qsv_preset_names[] =
 {
-    "auto", "high", "main", "baseline", NULL
+    "speed", "balanced", "quality", NULL
 };
 
-static const char * const h265_qsv_profile_name[] =
+static const char * const h265_qsv_10bit_profile_names[] =
 {
-    "auto", "main", "main10", "mainsp",  NULL
+    "auto", "main10", NULL
+};
+
+static const char * const av1_qsv_profile_names[] =
+{
+    "auto", "main", NULL
+};
+
+// QSV takes the HEVC level as general_level_idc / 3
+static const int h265_qsv_level_values[] =
+{
+    -1, 10, 20, 21, 30, 31, 40, 41, 50, 51, 52, 60, 61, 62, 0
 };
 
 static const char * const h26x_nvenc_preset_names[] =
@@ -635,13 +642,9 @@ int encavcodecInit( hb_work_object_t * w, hb_job_t * job )
     }
 
 #if HB_PROJECT_FEATURE_QSV
-    if (hb_qsv_is_ffmpeg_supported_codec(job->vcodec))
+    if ((job->vcodec & HB_VCODEC_QSV_MASK) && !(job->hw_decode & HB_DECODE_QSV))
     {
-        if (!(job->hw_decode & HB_DECODE_QSV))
-        {
-            hb_qsv_setup_job(job);
-        }
-        hb_qsv_apply_encoder_options(&pv->qsv_data, job, &av_opts);
+        hb_qsv_setup_job(job);
     }
 #endif
 
@@ -667,24 +670,6 @@ int encavcodecInit( hb_work_object_t * w, hb_job_t * job )
             // Expect supported modes: CQP (default), CBR, VBR (*chosen*), QVBR
             av_dict_set( &av_opts, "rc_mode", "VBR", 0 ); // Enable variable bitrate control mode
             hb_log( "encavcodec: vaapi: encoding at rc_mode=VBR, Bitrate %d", job->vbitrate );
-        }
-#endif
-
-#if HB_PROJECT_FEATURE_QSV
-        if (hb_qsv_is_ffmpeg_supported_codec(job->vcodec))
-        {
-            if (pv->qsv_data.param.rc.lookahead)
-            {
-                // introduced in API 1.7
-                av_dict_set( &av_opts, "look_ahead", "1", 0 );
-            }
-
-            if (job->vbitrate == pv->qsv_data.param.rc.vbv_max_bitrate)
-            {
-                char maxrate[7];
-                snprintf(maxrate, 7, "%d", (int)context->bit_rate);
-                av_dict_set( &av_opts, "maxrate", maxrate, 0 );
-            }
         }
 #endif
 
@@ -786,20 +771,6 @@ int encavcodecInit( hb_work_object_t * w, hb_job_t * job )
             av_dict_set( &av_opts, "init_qpI", qualityI, 0 );
             hb_log( "encavcodec: encoding at rc=vbr, %.2f", job->vquality );
         }
-#if HB_PROJECT_FEATURE_QSV
-        else if (hb_qsv_is_ffmpeg_supported_codec(job->vcodec))
-        {
-            context->bit_rate = 0;
-            if (pv->qsv_data.param.rc.icq)
-            {
-                char global_quality[7];
-                int upper_limit = 51;
-                snprintf(global_quality, 7, "%d", HB_QSV_CLIP3(1, upper_limit, (int)job->vquality));
-                av_dict_set(&av_opts, "global_quality", global_quality, 0);
-                hb_log("encavcodec: encoding with brc ICQ %s", global_quality);
-            }
-        }
-#endif
 #if HB_PROJECT_FEATURE_VAAPI
         // Set constant quality for vaapi
         else if (hb_video_encoder_is_vaapi(job->vcodec))
@@ -919,6 +890,12 @@ int encavcodecInit( hb_work_object_t * w, hb_job_t * job )
             av_dict_set( &av_opts, "quality", 0, 0 );
             hb_log( "encavcodec: encoding at automatic quality" );
         }
+#if HB_PROJECT_FEATURE_QSV
+        else if (job->vcodec & HB_VCODEC_QSV_MASK)
+        {
+            // set in hb_qsv_apply_encoder_options()
+        }
+#endif
         else
         {
             // These settings produce better image quality than
@@ -930,6 +907,13 @@ int encavcodecInit( hb_work_object_t * w, hb_job_t * job )
                     context->global_quality );
         }
     }
+#if HB_PROJECT_FEATURE_QSV
+    if (job->vcodec & HB_VCODEC_QSV_MASK)
+    {
+        // rate control and encoder options
+        hb_qsv_apply_encoder_options(job, context, &av_opts);
+    }
+#endif
     context->width     = job->width;
     context->height    = job->height;
 
@@ -947,7 +931,7 @@ int encavcodecInit( hb_work_object_t * w, hb_job_t * job )
     else
     {
 #if HB_PROJECT_FEATURE_QSV
-        if (hb_qsv_is_ffmpeg_supported_codec(job->vcodec) && !job->hw_device_ctx)
+        if ((job->vcodec & HB_VCODEC_QSV_MASK) && !job->hw_device_ctx)
         {
             hb_hwaccel_hw_device_ctx_init(AV_HWDEVICE_TYPE_QSV,
                                           job->hw_device_index,
@@ -1897,7 +1881,7 @@ static int apply_options(hb_job_t *job, AVCodecContext *context, AVDictionary **
 static int apply_encoder_options(hb_job_t *job, AVCodecContext *context, AVDictionary **av_opts)
 {
 #if HB_PROJECT_FEATURE_QSV
-    if (hb_qsv_is_ffmpeg_supported_codec(job->vcodec))
+    if (job->vcodec & HB_VCODEC_QSV_MASK)
     {
         // options applied separately via hb_qsv_apply_encoder_options() call
         return 0;
@@ -2056,7 +2040,9 @@ static int apply_encoder_preset(int vcodec, AVCodecContext *context,
         case HB_VCODEC_FFMPEG_QSV_H265_10BIT:
         case HB_VCODEC_FFMPEG_QSV_AV1:
         case HB_VCODEC_FFMPEG_QSV_AV1_10BIT:
-            preset = hb_map_qsv_preset_name(preset);
+            preset = preset == NULL                 ? "medium"   :
+                     !strcasecmp(preset, "speed")   ? "veryfast" :
+                     !strcasecmp(preset, "quality") ? "veryslow" : "medium";
             av_dict_set( av_opts, "preset", preset, 0);
             hb_log("encavcodec: encoding with preset %s", preset);
             break;
@@ -2110,8 +2096,8 @@ static int apply_encoder_level(AVCodecContext *context, AVDictionary **av_opts, 
 
 #if HB_PROJECT_FEATURE_QSV
         case HB_VCODEC_FFMPEG_QSV_H264:
-            level_names = hb_qsv_h264_level_names;
-            level_values = hb_qsv_h264_levels;
+            level_names = hb_h264_level_names;
+            level_values = hb_h264_level_values;
             break;
 #endif
 
@@ -2128,8 +2114,8 @@ static int apply_encoder_level(AVCodecContext *context, AVDictionary **av_opts, 
 #if HB_PROJECT_FEATURE_QSV
         case HB_VCODEC_FFMPEG_QSV_H265:
         case HB_VCODEC_FFMPEG_QSV_H265_10BIT:
-            level_names = hb_qsv_h265_level_names;
-            level_values = hb_qsv_h265_levels;
+            level_names = hb_h265_level_names;
+            level_values = h265_qsv_level_values;
             break;
 #endif
 
@@ -2146,8 +2132,8 @@ static int apply_encoder_level(AVCodecContext *context, AVDictionary **av_opts, 
 #if HB_PROJECT_FEATURE_QSV
         case HB_VCODEC_FFMPEG_QSV_AV1:
         case HB_VCODEC_FFMPEG_QSV_AV1_10BIT:
-            level_names = hb_qsv_av1_level_names;
-            level_values = hb_qsv_av1_levels;
+            level_names = hb_av1_level_names;
+            level_values = hb_av1_level_values;
             break;
 #endif
 
@@ -2241,7 +2227,7 @@ const char* const* hb_av_preset_get_names(int encoder)
         case HB_VCODEC_FFMPEG_QSV_H265_10BIT:
         case HB_VCODEC_FFMPEG_QSV_AV1:
         case HB_VCODEC_FFMPEG_QSV_AV1_10BIT:
-            return hb_qsv_preset_get_names();
+            return qsv_preset_names;
 #endif
 
         default:
@@ -2286,10 +2272,14 @@ const char* const* hb_av_profile_get_names(int encoder)
         case HB_VCODEC_FFMPEG_VAAPI_AV1:
             return av1_vaapi_profile_names;
         case HB_VCODEC_FFMPEG_QSV_H264:
-            return h264_qsv_profile_name;
+            return hb_h264_profile_names_8bit;
         case HB_VCODEC_FFMPEG_QSV_H265:
+            return hb_h265_profile_names_8bit;
         case HB_VCODEC_FFMPEG_QSV_H265_10BIT:
-            return h265_qsv_profile_name;
+            return h265_qsv_10bit_profile_names;
+        case HB_VCODEC_FFMPEG_QSV_AV1:
+        case HB_VCODEC_FFMPEG_QSV_AV1_10BIT:
+            return av1_qsv_profile_names;
         case HB_VCODEC_FFMPEG_MPEG2:
             return hb_mpeg2_profile_names;
         case HB_VCODEC_FFMPEG_DNXHR:

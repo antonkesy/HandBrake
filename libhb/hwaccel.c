@@ -11,6 +11,9 @@
 #include "handbrake/handbrake.h"
 #include "handbrake/qsv_common.h"
 #include "handbrake/vce_common.h"
+#if HB_PROJECT_FEATURE_QSV
+#include "libavutil/hwcontext_qsv.h"
+#endif
 
 static hb_buffer_t * upload(void *hw_frames_ctx, hb_buffer_t **buf_in)
 {
@@ -259,7 +262,17 @@ int hb_hwaccel_hw_device_ctx_init(enum AVHWDeviceType device_type, int device_in
     if (device_index > -1)
     {
         char device[32];
-        snprintf(device, 32, "%u", device_index);
+#if defined(SYS_LINUX) || defined(SYS_FREEBSD)
+        if (device_type == AV_HWDEVICE_TYPE_QSV)
+        {
+            // the QSV adapter index is the DRM render node offset
+            snprintf(device, 32, "/dev/dri/renderD%d", 128 + device_index);
+        }
+        else
+#endif
+        {
+            snprintf(device, 32, "%u", device_index);
+        }
         av_dict_set(&dict, "child_device", device, 0);
     }
 

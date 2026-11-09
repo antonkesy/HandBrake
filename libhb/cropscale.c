@@ -121,7 +121,7 @@ static int crop_scale_init(hb_filter_object_t * filter, hb_filter_init_t * init)
             hb_dict_set_string(avsettings, "out_range", ((color_range == AVCOL_RANGE_JPEG) ? "full" : "limited"));
         }
         hb_dict_set_int(avsettings, "async_depth", init->job->hw_device_async_depth);
-        if (init->job->qsv_ctx->vpp_scale_mode)
+        if (init->job->qsv_ctx->vpp_scale_mode[0])
         {
             hb_dict_set_string(avsettings, "scale_mode", init->job->qsv_ctx->vpp_scale_mode);
             hb_log("qsv: scaling filter mode %s", init->job->qsv_ctx->vpp_scale_mode);

@@ -2593,12 +2593,6 @@ Please choose a different preset.</value>
   <data name="MainView_NightlyBuildsUpdate" xml:space="preserve">
     <value>Download Development Builds (HTTPS)</value>
   </data>
-  <data name="OptionsView_EnableQuicksyncHyperEncode" xml:space="preserve">
-    <value>فعال کردن ابرفشرده‌ساز Deep Link</value>
-  </data>
-  <data name="OptionsView_HyperEncodeDescription" xml:space="preserve">
-    <value> درصورت سازگاری از چند هسته‌ی پردازشی برای یک فشرده‌سازی استفاده شود. برای پخش‌کردن فشار چند فشرده‌سازی همزمان بر روی هسته‌ها این گزینه غیرفعال شود.</value>
-  </data>
   <data name="MainView_OpenHandBrake" xml:space="preserve">
     <value>Open HandBrake</value>
   </data>

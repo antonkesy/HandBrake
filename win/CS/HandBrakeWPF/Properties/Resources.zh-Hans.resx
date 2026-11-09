@@ -2593,12 +2593,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.</
   <data name="MainView_NightlyBuildsUpdate" xml:space="preserve">
     <value>下载开发构建版本 (HTTPS)</value>
   </data>
-  <data name="OptionsView_EnableQuicksyncHyperEncode" xml:space="preserve">
-    <value>启用 QuickSync Deep Link 超级编码</value>
-  </data>
-  <data name="OptionsView_HyperEncodeDescription" xml:space="preserve">
-    <value>在支持的情况下，优先使用多个媒体引擎来加速单个编码任务。禁用此选项会把多个并发编码任务平均分配到所有媒体引擎。</value>
-  </data>
   <data name="MainView_OpenHandBrake" xml:space="preserve">
     <value>打开 HandBrake</value>
   </data>

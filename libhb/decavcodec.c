@@ -1584,10 +1584,6 @@ static int decavcodecvInit( hb_work_object_t * w, hb_job_t * job )
             {
                 pv->context->extra_hw_frames = HB_QSV_FFMPEG_EXTRA_HW_FRAMES;
             }
-            if (pv->context->codec_id == AV_CODEC_ID_HEVC)
-            {
-                av_dict_set( &av_opts, "load_plugin", "hevc_hw", 0 );
-            }
         }
 #endif
 

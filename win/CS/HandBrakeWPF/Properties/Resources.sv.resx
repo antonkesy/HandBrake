@@ -2598,12 +2598,6 @@ Endast köfiler från den aktuella versionen stöds.</value>
   <data name="MainView_NightlyBuildsUpdate" xml:space="preserve">
     <value>Hämta utvecklingsversioner (HTTPS)</value>
   </data>
-  <data name="OptionsView_EnableQuicksyncHyperEncode" xml:space="preserve">
-    <value>Aktivera QuickSync Deep Link Hyper Encode</value>
-  </data>
-  <data name="OptionsView_HyperEncodeDescription" xml:space="preserve">
-    <value>Föredrar användningen av flera mediamotorer som stöds för att snabba upp en enstaka kodning. Inaktivera för att tillåta lastbalansering av parallella kodningar mellan mediamotorer.</value>
-  </data>
   <data name="MainView_OpenHandBrake" xml:space="preserve">
     <value>Öppna HandBrake</value>
   </data>

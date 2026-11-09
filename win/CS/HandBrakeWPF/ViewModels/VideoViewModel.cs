@@ -1176,24 +1176,7 @@ namespace HandBrakeWPF.ViewModels
                 defaultPreset = this.VideoPresets.IndexOf(this.VideoPresets.FirstOrDefault(s => s.ShortName == "medium"));
             }
 
-            // Override for QuickSync
-            if (selectedEncoder.IsQuickSyncH265)
-            {
-                if (HandBrakeHardwareEncoderHelper.QsvHardwareGeneration > 6) 
-                {
-                    defaultPreset = this.VideoPresets.IndexOf(this.VideoPresets.FirstOrDefault(s => s.ShortName == "speed")); // TGL
-                }
-                else
-                {
-                    defaultPreset = this.VideoPresets.IndexOf(this.VideoPresets.FirstOrDefault(s => s.ShortName == "balanced")); // ICL and Earlier.
-                }
-            }
-
-            if (selectedEncoder.IsQuickSyncAV1)
-            {
-                defaultPreset = this.VideoPresets.IndexOf(this.VideoPresets.FirstOrDefault(s => s.ShortName == "speed")); // Alchemist and later
-            }
-
+            // Override for QuickSync and VCN
             if (selectedEncoder.IsQuickSync || selectedEncoder.IsVCN)
             {
                 defaultPreset = this.VideoPresets.IndexOf(this.VideoPresets.FirstOrDefault(s => s.ShortName == "balanced")); 

@@ -2598,12 +2598,6 @@ Sono supportati solo file della coda della versione corrente.</value>
   <data name="MainView_NightlyBuildsUpdate" xml:space="preserve">
     <value>Scarica Versioni Ancora in Sviluppo (HTTPS)</value>
   </data>
-  <data name="OptionsView_EnableQuicksyncHyperEncode" xml:space="preserve">
-    <value>Abilita Codifica QuickSync Deep Link</value>
-  </data>
-  <data name="OptionsView_HyperEncodeDescription" xml:space="preserve">
-    <value>Usa molteplici sistemi di codifica per velocizzare una codifica singola, se supportato. Disabilitarlo permette di bilanciare il carico in parallelo tra vari sistemi di codifica.</value>
-  </data>
   <data name="MainView_OpenHandBrake" xml:space="preserve">
     <value>Avvia HandBrake</value>
   </data>

@@ -2538,7 +2538,7 @@ if (hb_qsv_available())
 "                           (default: 4)\n"
 "   --qsv-adapter[=index]\n"
 "                           Set QSV hardware graphics adapter index\n"
-"                           (default: QSV hardware graphics adapter with highest hardware generation)\n"
+"                           (default: QSV hardware graphics adapter supporting the most encoders)\n"
 "\n"
     );
 }
@@ -2746,7 +2746,6 @@ static int ParseOptions( int argc, char ** argv )
     #define AUDIO_DITHER         294
     #define QSV_ASYNC_DEPTH      296
     #define QSV_ADAPTER          297
-    #define QSV_IMPLEMENTATION   298
     #define FILTER_NLMEANS       299
     #define FILTER_NLMEANS_TUNE  300
     #define AUDIO_LANG_LIST      301
@@ -2814,7 +2813,6 @@ static int ParseOptions( int argc, char ** argv )
 #if HB_PROJECT_FEATURE_QSV
             { "qsv-async-depth",      required_argument, NULL,        QSV_ASYNC_DEPTH,    },
             { "qsv-adapter",          required_argument, NULL,        QSV_ADAPTER         },
-            { "qsv-implementation",   required_argument, NULL,        QSV_IMPLEMENTATION, },
             { "disable-qsv-decoding", no_argument,       &qsv_decode, 0,                  },
             { "enable-qsv-decoding",  no_argument,       &qsv_decode, 1,                  },
 #endif
@@ -3888,9 +3886,6 @@ static int ParseOptions( int argc, char ** argv )
                 break;
             case QSV_ADAPTER:
                 qsv_adapter = atoi(optarg);
-                break;
-            case QSV_IMPLEMENTATION:
-                hb_qsv_impl_set_preferred(optarg);
                 break;
 #endif
             case HW_DECODE:

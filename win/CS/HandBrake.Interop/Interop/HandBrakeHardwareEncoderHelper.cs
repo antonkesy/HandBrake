@@ -10,7 +10,6 @@
 namespace HandBrake.Interop.Interop
 {
     using System;
-    using System.Diagnostics;
     using System.Runtime.InteropServices;
 
     using HandBrake.Interop.Interop.HbLib;
@@ -21,7 +20,6 @@ namespace HandBrake.Interop.Interop
         private static bool? isNvencH265Available;
         private static bool? isNVDecAvailable;
 
-        private static int? qsvHardwareGeneration;
         private static bool? isQsvAvailable;
 
         private static bool? isDirectXAvailable;
@@ -71,27 +69,9 @@ namespace HandBrake.Interop.Interop
                         return isQsvAvailable.Value;
                     }
 
-                    // We support Skylake 6th gen and newer. 
-                    isQsvAvailable = HBFunctions.hb_qsv_available() > 0 && QsvHardwareGeneration >= 5; // 5 == Skylake
+                    isQsvAvailable = HBFunctions.hb_qsv_available() > 0;
                     
                     return isQsvAvailable.Value; 
-                }
-                catch (Exception)
-                {
-                    // Silent failure. Typically this means the dll hasn't been built with --enable-qsv
-                    return false;
-                }
-            }
-        }
-
-        public static bool IsQsvHyperEncodeAvailable
-        {
-            get
-            {
-                try
-                {
-                    return false; // This feature has been deprecated by Intel.
-                    // return IsQsvAvailable && QsvHyperEncode > 0;
                 }
                 catch (Exception)
                 {
@@ -129,52 +109,6 @@ namespace HandBrake.Interop.Interop
                 {
                     // Silent failure. Typically this means the dll hasn't been built with --enable-qsv
                     return false;
-                }
-            }
-        }
-
-        public static int? QsvHardwareGeneration
-        {
-            get
-            {
-                try
-                {
-                    if (qsvHardwareGeneration != null)
-                    {
-                        return qsvHardwareGeneration;
-                    }
-
-                    int adapter_index = HBFunctions.hb_qsv_get_adapter_index();
-                    int qsv_platform = HBFunctions.hb_qsv_get_platform(adapter_index);
-                    int hardware = HBFunctions.hb_qsv_hardware_generation(qsv_platform);
-
-                    qsvHardwareGeneration = hardware;
-
-                    return hardware;
-                }
-                catch (Exception exc)
-                {
-                    // Silent failure. -1 means unsupported.
-                    Debug.WriteLine(exc);
-                    return -1;
-                }
-            }
-        }
-
-        public static int QsvHyperEncode
-        {
-            get
-            {
-                try
-                {
-                    int adapter_index = HBFunctions.hb_qsv_get_adapter_index();
-                    return HBFunctions.hb_qsv_hyper_encode_available(adapter_index);
-                }
-                catch (Exception exc)
-                {
-                    // Silent failure. -1 means unsupported.
-                    Debug.WriteLine(exc);
-                    return -1;
                 }
             }
         }

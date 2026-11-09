@@ -2597,12 +2597,6 @@ Sunt acceptate doar fișierele de coadă din versiunea curentă.</value>
   <data name="MainView_NightlyBuildsUpdate" xml:space="preserve">
     <value>Descarcă versiunile de dezvoltare (HTTPS)</value>
   </data>
-  <data name="OptionsView_EnableQuicksyncHyperEncode" xml:space="preserve">
-    <value>Activează codorul QuickSync Deep Link Hyper Encode</value>
-  </data>
-  <data name="OptionsView_HyperEncodeDescription" xml:space="preserve">
-    <value>Preferă utilizarea mai multor motoare media pentru a accelera o singură codare, acolo unde este acceptată. Dezactiveaz-o pentru a se permite echilibrarea încărcării a mai multor codări paralele între motoarele media.</value>
-  </data>
   <data name="MainView_OpenHandBrake" xml:space="preserve">
     <value>Deschide HandBrake</value>
   </data>

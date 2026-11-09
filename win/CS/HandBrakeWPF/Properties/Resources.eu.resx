@@ -2595,12 +2595,6 @@ Uneko bertsioko ilara fitxategiak soilik onartzen dira.</value>
   <data name="MainView_NightlyBuildsUpdate" xml:space="preserve">
     <value>Deskargatu garapen eraikuntzak (HTTPS)</value>
   </data>
-  <data name="OptionsView_EnableQuicksyncHyperEncode" xml:space="preserve">
-    <value>Gaitu QuickSync Deep Link Hyper Encode</value>
-  </data>
-  <data name="OptionsView_HyperEncodeDescription" xml:space="preserve">
-    <value>Onartzen den kasuetan, kodetze bakarra bizkortzeko hainbat multimedia-motor erabiltzea hobesten du. Desgaitu karga orekatzeko aldi bereko hainbat kodetze multimedia-motorretan.</value>
-  </data>
   <data name="MainView_OpenHandBrake" xml:space="preserve">
     <value>Ireki HandBrake</value>
   </data>

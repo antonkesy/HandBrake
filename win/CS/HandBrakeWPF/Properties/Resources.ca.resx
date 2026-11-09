@@ -2594,12 +2594,6 @@ Només són compatibles els fitxers de cua de la versió actual.</value>
   <data name="MainView_NightlyBuildsUpdate" xml:space="preserve">
     <value>Baixa les versions en desenvolupament (HTTPS)</value>
   </data>
-  <data name="OptionsView_EnableQuicksyncHyperEncode" xml:space="preserve">
-    <value>Habilita la hipercodificació de QuickSync Deep Link</value>
-  </data>
-  <data name="OptionsView_HyperEncodeDescription" xml:space="preserve">
-    <value>Dona preferència a l'ús de diversos motors multimèdia per accelerar una sola codificació on sigui possible. Desactiveu l'opció per permetre l'equilibri de càrrega de diverses codificacions paral·leles entre els motors multimèdia.</value>
-  </data>
   <data name="MainView_OpenHandBrake" xml:space="preserve">
     <value>Obre el HandBrake</value>
   </data>

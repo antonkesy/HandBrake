@@ -2214,13 +2214,6 @@ const char* const* hb_video_encoder_get_tunes(int encoder)
 
 const char* const* hb_video_encoder_get_profiles(int encoder)
 {
-#if HB_PROJECT_FEATURE_QSV
-    if (encoder & HB_VCODEC_QSV_MASK)
-    {
-        return hb_qsv_profile_get_names(encoder);
-    }
-#endif
-
     switch (encoder)
     {
         case HB_VCODEC_X264_8BIT:
@@ -2283,13 +2276,6 @@ const char* const* hb_video_encoder_get_profiles(int encoder)
 
 const char* const* hb_video_encoder_get_levels(int encoder)
 {
-#if HB_PROJECT_FEATURE_QSV
-    if (encoder & HB_VCODEC_QSV_MASK)
-    {
-        return hb_qsv_level_get_names(encoder);
-    }
-#endif
-
     if (encoder & HB_VCODEC_FFMPEG_MASK)
     {
         return hb_av_level_get_names(encoder);

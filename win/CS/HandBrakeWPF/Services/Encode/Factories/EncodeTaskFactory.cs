@@ -308,7 +308,7 @@ namespace HandBrakeWPF.Services.Encode.Factories
                     NativeConstants.HB_DECODE_QSV | NativeConstants.HB_DECODE_FORCE_HW : 0;
             }
 
-            if (this.isEncodePath && HandBrakeHardwareEncoderHelper.IsQsvAvailable && (HandBrakeHardwareEncoderHelper.QsvHardwareGeneration > 6) && (job.VideoEncoder?.IsQuickSync ?? false))
+            if (this.isEncodePath && HandBrakeHardwareEncoderHelper.IsQsvAvailable && (job.VideoEncoder?.IsQuickSync ?? false))
             {
                 if (enableQsvLowPower && !video.Options.Contains("lowpower"))
                 {

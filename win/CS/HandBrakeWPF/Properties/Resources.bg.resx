@@ -2596,12 +2596,6 @@ You can drag/drop or enter the text above.</value>
   <data name="MainView_NightlyBuildsUpdate" xml:space="preserve">
     <value>Изтеглете версии за разработчици (HTTPS)</value>
   </data>
-  <data name="OptionsView_EnableQuicksyncHyperEncode" xml:space="preserve">
-    <value>Позволи QuickSync Deep Link Hyper Encode</value>
-  </data>
-  <data name="OptionsView_HyperEncodeDescription" xml:space="preserve">
-    <value>Предпочита употребата на множество енкодери, за да забърза едно кодиране, когато се поддържа. Изключи тази настройка, за да се позволи балансиране на натоварването между едновременни кодирания между различните енкодери.</value>
-  </data>
   <data name="MainView_OpenHandBrake" xml:space="preserve">
     <value>Отвори HandBrake</value>
   </data>

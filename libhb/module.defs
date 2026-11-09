@@ -90,11 +90,6 @@ else
     LIBHB.platform.D = SYS_UNKNOWN
 endif
 
-ifeq (1,$(FEATURE.qsv))
-    LIBHB.GCC.D += ONEVPL_EXPERIMENTAL
-    LIBHB.GCC.D += HAVE_THREADS=1
-endif
-
 ifeq (1,$(COMPAT.strtok_r))
     LIBHB.GCC.D += HB_NEED_STRTOK_R
 endif
@@ -126,7 +121,6 @@ LIBHB.dll.libs += $(CONTRIB.build/)lib/libfdk-aac.a
 endif
 
 ifeq (1,$(FEATURE.qsv))
-LIBHB.GCC.D += ONEVPL_EXPERIMENTAL
 LIBHB.dll.libs += $(CONTRIB.build/)lib/libvpl.a
 endif
 

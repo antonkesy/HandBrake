@@ -75,12 +75,6 @@ namespace HandBrakeWPF.Services.Queue
             this.qsvGpus = HandBrakeEncoderHelpers.GetQsvAdaptorList();
             this.totalQsvInstances = this.qsvGpus.Count * 2; // Allow two instances per GPU
 
-            if (this.userSettingService.GetUserSetting<bool>(UserSettingConstants.EnableQuickSyncHyperEncode))
-            {
-                // When HyperEncode is supported, we encode 1 job across multiple media engines. 
-                this.totalQsvInstances = 1;
-            }
-
             if (this.maxAllowedInstances == 1)
             {
                 this.totalQsvInstances = 1;
@@ -232,14 +226,6 @@ namespace HandBrakeWPF.Services.Queue
             if (this.qsvGpus.Count <= 1)
             {
                 return; // Not a multi-Intel-GPU system.
-            }
-
-            // HyperEncode takes priority over load balancing when enabled. 
-            if (this.userSettingService.GetUserSetting<bool>(UserSettingConstants.EnableQuickSyncHyperEncode))
-            {
-                task.ExtraAdvancedArguments = string.IsNullOrEmpty(task.ExtraAdvancedArguments)
-                                                  ? "hyperencode=adaptive" : string.Format("hyperencode=adaptive:{0}", task.ExtraAdvancedArguments);
-                return;
             }
 
             if (task.ExtraAdvancedArguments.Contains("gpu"))

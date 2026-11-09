@@ -2587,12 +2587,6 @@ Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 0211
   <data name="MainView_NightlyBuildsUpdate" xml:space="preserve">
     <value>下載開發版（HTTPS）</value>
   </data>
-  <data name="OptionsView_EnableQuicksyncHyperEncode" xml:space="preserve">
-    <value>啟用 QuickSync Deep Link 超編碼</value>
-  </data>
-  <data name="OptionsView_HyperEncodeDescription" xml:space="preserve">
-    <value>支援時，偏好使用多個媒體引擎來加速單一編碼。停用的話則可對不同的媒體引擎進行負載平衡，進行平行編碼。</value>
-  </data>
   <data name="MainView_OpenHandBrake" xml:space="preserve">
     <value>開啟 HandBrake</value>
   </data>

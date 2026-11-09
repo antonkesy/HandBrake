@@ -33,38 +33,6 @@
 
 #include "handbrake/project.h"
 
-#if HB_PROJECT_FEATURE_QSV
-#include "vpl/mfxstructures.h"
-#if defined(SYS_LINUX) || defined(SYS_FREEBSD)
-#include <va/va_drm.h>
-#endif
-#endif
-
-/************************************************************************
- * HW accel display
- ***********************************************************************/
-#if defined(SYS_LINUX) || defined(SYS_FREEBSD)
-extern const char* DRM_INTEL_DRIVER_NAME;
-#endif // SYS_LINUX || SYS_FREEBSD
-
-typedef struct
-{
-    void          * handle;
-#if HB_PROJECT_FEATURE_QSV
-    mfxHandleType   mfxType;
-
-#if defined(SYS_LINUX) || defined(SYS_FREEBSD)
-    int             vaFd;
-    VADisplay       vaDisplay;
-#endif // SYS_LINUX || SYS_FREEBSD
-#endif
-} hb_display_t;
-
-hb_display_t * hb_display_init(const char         * driver_name,
-                               const uint32_t       dri_render_node,
-                               const char * const * interface_names);
-void           hb_display_close(hb_display_t ** _d);
-
 /************************************************************************
  * Operating system info utilities
  ***********************************************************************/
