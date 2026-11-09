@@ -359,16 +359,6 @@ static int open_adapter(int index, hb_qsv_adapter_t *adapter, AVBufferRef **chil
 
 #endif // _WIN32
 
-static int bit_count(int value)
-{
-    int count = 0;
-    for (; value; value &= value - 1)
-    {
-        count++;
-    }
-    return count;
-}
-
 static void make_adapters_list(void)
 {
     int best_score = -1;
@@ -400,7 +390,7 @@ static void make_adapters_list(void)
         }
 
         // prefer the adapter that can open the most encoders
-        int score = bit_count(adapter.encoders);
+        int score = av_popcount(adapter.encoders);
         if (score > best_score)
         {
             best_score              = score;

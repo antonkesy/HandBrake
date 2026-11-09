@@ -1754,12 +1754,12 @@ static void do_job(hb_job_t *job)
     {
         job->hw_decode = 0;
     }
+#if HB_PROJECT_FEATURE_QSV
     if (job->hw_decode & HB_DECODE_QSV)
     {
-        #if HB_PROJECT_FEATURE_QSV
         hb_qsv_setup_job(job);
-        #endif
     }
+#endif
 
     // This must be performed before initializing filters because
     // it can add the subtitle render filter.

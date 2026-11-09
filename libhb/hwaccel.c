@@ -9,7 +9,6 @@
 
 #include "handbrake/hwaccel.h"
 #include "handbrake/handbrake.h"
-#include "handbrake/qsv_common.h"
 #include "handbrake/vce_common.h"
 #if HB_PROJECT_FEATURE_QSV
 #include "libavutil/hwcontext_qsv.h"
@@ -357,8 +356,6 @@ int hb_hwaccel_hwframes_ctx_init(AVCodecContext *ctx,
 #if HB_PROJECT_FEATURE_QSV
     if (hw_pix_fmt == AV_PIX_FMT_QSV)
     {
-        frames_ctx->initial_pool_size = HB_QSV_FFMPEG_INITIAL_POOL_SIZE;
-
         AVQSVFramesContext *frames_hwctx = frames_ctx->hwctx;
         frames_hwctx->frame_type = MFX_MEMTYPE_VIDEO_MEMORY_DECODER_TARGET;
     }
