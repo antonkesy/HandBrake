@@ -2601,6 +2601,12 @@ Vain nykyisen version jonotiedostoja tuetaan.</value>
   <data name="MainView_NightlyBuildsUpdate" xml:space="preserve">
     <value>Lataa kehityskoosteita (HTTPS)</value>
   </data>
+  <data name="OptionsView_EnableQuicksyncHyperEncode" xml:space="preserve">
+    <value>Käytä QuickSyncin Deep Link Hyper -koodausta</value>
+  </data>
+  <data name="OptionsView_HyperEncodeDescription" xml:space="preserve">
+    <value>Suosii monien mediamoottorien käyttöä yksittäisen koodauksen nopeuttamiseksi, jos sitä tuetaan. Poista käytöstä, jos haluat käyttää useampien rinnakkaisten koodausten kuorman tasapainotusta mediamoottorien välillä.</value>
+  </data>
   <data name="MainView_OpenHandBrake" xml:space="preserve">
     <value>Avaa HandBrake</value>
   </data>

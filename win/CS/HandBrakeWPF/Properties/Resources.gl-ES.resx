@@ -2584,6 +2584,12 @@ Só se soportan ficheiros de cola da versión actual.</value>
   <data name="MainView_NightlyBuildsUpdate" xml:space="preserve">
     <value>Descargar versións de desenvolvemento (HTTPS)</value>
   </data>
+  <data name="OptionsView_EnableQuicksyncHyperEncode" xml:space="preserve">
+    <value>Activar QuickSync Deep Link Hyper Encode</value>
+  </data>
+  <data name="OptionsView_HyperEncodeDescription" xml:space="preserve">
+    <value>Prefire o uso de múltiples motores multimedia para acelerar unha única codificación onde sexa compatible. Desactiva para permitir a distribución da carga en múltiples codificacións paralelas a través de motores multimedia.</value>
+  </data>
   <data name="MainView_OpenHandBrake" xml:space="preserve">
     <value>Abrir HandBrake</value>
   </data>

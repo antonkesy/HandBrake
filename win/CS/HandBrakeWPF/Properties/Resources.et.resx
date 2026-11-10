@@ -2598,6 +2598,12 @@ Only queue files from the current version are supported.</value>
   <data name="MainView_NightlyBuildsUpdate" xml:space="preserve">
     <value>Download Development Builds (HTTPS)</value>
   </data>
+  <data name="OptionsView_EnableQuicksyncHyperEncode" xml:space="preserve">
+    <value>Enable QuickSync Deep Link Hyper Encode</value>
+  </data>
+  <data name="OptionsView_HyperEncodeDescription" xml:space="preserve">
+    <value>Prefers the use of multiple media engines to speed up a single encode where supported. Disable to allow load balancing multiple parallel encodes across media engines.</value>
+  </data>
   <data name="MainView_OpenHandBrake" xml:space="preserve">
     <value>Ava HandBrake</value>
   </data>

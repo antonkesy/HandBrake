@@ -1765,6 +1765,12 @@ static void Encode( hb_work_object_t *w, hb_buffer_t **buf_in,
         frame.pict_type = AV_PICTURE_TYPE_NONE;
         frame.flags = 0;
     }
+#if HB_PROJECT_FEATURE_QSV
+    if (pv->job->vcodec & HB_VCODEC_QSV_MASK)
+    {
+        hb_qsv_set_frame_field_order(pv->job, &frame);
+    }
+#endif
 
 #if HB_PROJECT_FEATURE_VAAPI
     if (hb_video_encoder_is_vaapi(pv->job->vcodec))

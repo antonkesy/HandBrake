@@ -351,6 +351,12 @@ namespace HandBrake.Interop.Interop.HbLib
 
         [DllImport("hb", EntryPoint = "hb_qsv_adapters_list", CallingConvention = CallingConvention.Cdecl)]
         public static extern IntPtr hb_qsv_adapters_list();
+
+        [DllImport("hb", EntryPoint = "hb_qsv_get_adapter_index", CallingConvention = CallingConvention.Cdecl)]
+        public static extern int hb_qsv_get_adapter_index();
+
+        [DllImport("hb", EntryPoint = "hb_qsv_hyper_encode_available", CallingConvention = CallingConvention.Cdecl)]
+        public static extern int hb_qsv_hyper_encode_available(int adapter_index);
         
         [DllImport("hb", EntryPoint = "hb_get_preview3_json", CallingConvention = CallingConvention.Cdecl)]
         public static extern IntPtr hb_get_preview3_json(IntPtr hbHandle, int preview_idx, [In][MarshalAs(UnmanagedType.LPStr)] string job_dict);

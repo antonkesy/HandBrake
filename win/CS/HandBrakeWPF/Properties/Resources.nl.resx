@@ -2598,6 +2598,12 @@ Alleen wachtrijbestanden van de huidige versie worden ondersteund.</value>
   <data name="MainView_NightlyBuildsUpdate" xml:space="preserve">
     <value>Ontwikkelingsversies downloaden (HTTPS)</value>
   </data>
+  <data name="OptionsView_EnableQuicksyncHyperEncode" xml:space="preserve">
+    <value>QuickSync Deep Link Hyper Encode inschakelen</value>
+  </data>
+  <data name="OptionsView_HyperEncodeDescription" xml:space="preserve">
+    <value>Geeft de voorkeur aan het gebruik van meerdere media-engines om een enkele codering te versnellen waar dit wordt ondersteund. Uitschakelen om het verdelen van meerdere parallelle coderingen over media-engines toe te staan.</value>
+  </data>
   <data name="MainView_OpenHandBrake" xml:space="preserve">
     <value>HandBrake openen</value>
   </data>

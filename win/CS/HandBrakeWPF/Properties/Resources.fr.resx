@@ -2598,6 +2598,12 @@ Seul les fichier de file d'attente de la version actuelle sont supportés.</valu
   <data name="MainView_NightlyBuildsUpdate" xml:space="preserve">
     <value>Télécharger les versions de développement (HTTPS)</value>
   </data>
+  <data name="OptionsView_EnableQuicksyncHyperEncode" xml:space="preserve">
+    <value>Activer l'encodage QuickSync Deep Link Hyper</value>
+  </data>
+  <data name="OptionsView_HyperEncodeDescription" xml:space="preserve">
+    <value>Préférer l'utilisation de plusieurs moteurs média pour accélérer un unique encodage lorsque supporté. Déactiver pour autoriser la répartition en parallèle de plusieurs encodages sur les moteurs médias.</value>
+  </data>
   <data name="MainView_OpenHandBrake" xml:space="preserve">
     <value>Ouvrir HandBrake</value>
   </data>

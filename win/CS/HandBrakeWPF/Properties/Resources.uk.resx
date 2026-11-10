@@ -2598,6 +2598,12 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.<
   <data name="MainView_NightlyBuildsUpdate" xml:space="preserve">
     <value>Завантажити збірки для розробки (HTTPS)</value>
   </data>
+  <data name="OptionsView_EnableQuicksyncHyperEncode" xml:space="preserve">
+    <value>Увімкнути QuickSync Deep Link Hyper Encode</value>
+  </data>
+  <data name="OptionsView_HyperEncodeDescription" xml:space="preserve">
+    <value>Надає перевагу використанню декількох медіа-рушіїв для пришвидшення одного кодування, якщо це підтримується. Вимкніть, щоб дозволити розподілення навантаження між кількома паралельними кодуваннями на різних медіа-рушіях.</value>
+  </data>
   <data name="MainView_OpenHandBrake" xml:space="preserve">
     <value>Відкрити HandBrake</value>
   </data>

@@ -81,6 +81,22 @@ namespace HandBrake.Interop.Interop
             }
         }
 
+        public static bool IsQsvHyperEncodeAvailable
+        {
+            get
+            {
+                try
+                {
+                    return IsQsvAvailable && HBFunctions.hb_qsv_hyper_encode_available(HBFunctions.hb_qsv_get_adapter_index()) > 0;
+                }
+                catch (Exception)
+                {
+                    // Silent failure. Typically this means the dll hasn't been built with --enable-qsv
+                    return false;
+                }
+            }
+        }
+
         public static bool IsQsvAvailableH264
         {
             get

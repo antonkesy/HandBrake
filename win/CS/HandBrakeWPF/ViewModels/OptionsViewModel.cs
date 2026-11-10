@@ -117,6 +117,7 @@ namespace HandBrakeWPF.ViewModels
         private bool remoteServiceEnabled;
         private bool enableQuickSyncLowPower;
         private int simultaneousEncodes;
+        private bool enableQuickSyncHyperEncode;
         private bool enableNvDecSupport;
         private bool enableAmfDecSupport;
         private bool useIsoDateFormat;
@@ -1138,12 +1139,29 @@ namespace HandBrakeWPF.ViewModels
             }
         }
 
+        public bool EnableQuickSyncHyperEncode
+        {
+            get => this.enableQuickSyncHyperEncode;
+            set
+            {
+                if (value == this.enableQuickSyncHyperEncode)
+                {
+                    return;
+                }
+
+                this.enableQuickSyncHyperEncode = value;
+                this.NotifyOfPropertyChange(() => this.EnableQuickSyncHyperEncode);
+            }
+        }
+
         public bool DisplayIntelDriverWarning { get; set; }
         public bool DisplayNvidiaDriverWarning { get; set; }
 
         public VideoScaler SelectedScalingMode { get; set; }
 
         public bool IsQuickSyncAvailable { get; } = HandBrakeHardwareEncoderHelper.IsQsvAvailable;
+
+        public bool IsQuickSyncHyperEncodeAvailable { get; } = HandBrakeHardwareEncoderHelper.IsQsvHyperEncodeAvailable;
 
         public bool IsVceAvailable { get; } = HandBrakeHardwareEncoderHelper.IsVceH264Available;
 
@@ -1636,6 +1654,7 @@ namespace HandBrakeWPF.ViewModels
             this.SelectedScalingMode = this.userSettingService.GetUserSetting<VideoScaler>(UserSettingConstants.ScalingMode);
             this.UseQSVDecodeForNonQSVEnc = this.userSettingService.GetUserSetting<bool>(UserSettingConstants.UseQSVDecodeForNonQSVEnc);
             this.EnableQuickSyncLowPower = this.userSettingService.GetUserSetting<bool>(UserSettingConstants.EnableQuickSyncLowPower);
+            this.EnableQuickSyncHyperEncode = this.userSettingService.GetUserSetting<bool>(UserSettingConstants.EnableQuickSyncHyperEncode);
             this.EnableNvDecSupport = this.userSettingService.GetUserSetting<bool>(UserSettingConstants.EnableNvDecSupport);
             this.EnableAmfDecSupport = this.userSettingService.GetUserSetting<bool>(UserSettingConstants.EnableAmfDecSupport);
             this.EnableDirectXDecoding = this.userSettingService.GetUserSetting<bool>(UserSettingConstants.EnableDirectXDecoding);
@@ -1883,6 +1902,7 @@ namespace HandBrakeWPF.ViewModels
             this.userSettingService.SetUserSetting(UserSettingConstants.EnableQuickSyncDecoding, this.EnableQuickSyncDecoding);
             this.userSettingService.SetUserSetting(UserSettingConstants.ScalingMode, this.SelectedScalingMode);
             this.userSettingService.SetUserSetting(UserSettingConstants.UseQSVDecodeForNonQSVEnc, this.UseQSVDecodeForNonQSVEnc);
+            this.userSettingService.SetUserSetting(UserSettingConstants.EnableQuickSyncHyperEncode, this.EnableQuickSyncHyperEncode);
             this.userSettingService.SetUserSetting(UserSettingConstants.EnableNvDecSupport, this.EnableNvDecSupport);
             this.userSettingService.SetUserSetting(UserSettingConstants.EnableAmfDecSupport, this.EnableAmfDecSupport);
             this.userSettingService.SetUserSetting(UserSettingConstants.EnableDirectXDecoding, this.EnableDirectXDecoding);

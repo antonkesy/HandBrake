@@ -1783,11 +1783,19 @@ static void do_job(hb_job_t *job)
 
         // Initialize the hardware acceleration if possible
         hb_hwaccel_t *hwaccel = hb_get_hwaccel(job->hw_decode);
-        if (hb_hwaccel_can_use_full_hw_pipeline(hwaccel,
+        int full_hw_pipeline = hb_hwaccel_can_use_full_hw_pipeline(hwaccel,
                                                 job->list_filter,
                                                 job->vcodec,
                                                 job->title->rotation,
-                                                job->color_range && job->color_range != job->title->color_range))
+                                                job->color_range && job->color_range != job->title->color_range);
+#if HB_PROJECT_FEATURE_QSV
+        // QSV memory-type=system keeps the decoded frames in system memory
+        if (hwaccel == &hb_hwaccel_qsv && !hb_qsv_full_path_allowed(job))
+        {
+            full_hw_pipeline = 0;
+        }
+#endif
+        if (full_hw_pipeline)
         {
             job->hw_accel = hwaccel;
             job->hw_pix_fmt = hwaccel->hw_pix_fmt;

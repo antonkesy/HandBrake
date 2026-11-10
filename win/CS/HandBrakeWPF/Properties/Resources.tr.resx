@@ -2598,6 +2598,12 @@ Yalnızca mevcut sürümdeki kuyruk dosyaları desteklenir.</value>
   <data name="MainView_NightlyBuildsUpdate" xml:space="preserve">
     <value>Geliştirme Yapılarını İndirin (HTTPS)</value>
   </data>
+  <data name="OptionsView_EnableQuicksyncHyperEncode" xml:space="preserve">
+    <value>QuickSync Derin Bağlantı Hiper Kodlamasını Etkinleştir</value>
+  </data>
+  <data name="OptionsView_HyperEncodeDescription" xml:space="preserve">
+    <value>Desteklendiğinde tek bir kodlamayı hızlandırmak için birden çok medya motorunun kullanımını tercih eder. Medya motorları arasında birden çok paralel kodlamanın yük dengelemesine izin vermek için devre dışı bırakın.</value>
+  </data>
   <data name="MainView_OpenHandBrake" xml:space="preserve">
     <value>HandBrake'i aç</value>
   </data>

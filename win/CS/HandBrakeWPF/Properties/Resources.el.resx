@@ -2621,6 +2621,12 @@ You can drag/drop or enter the text above.</value>
   <data name="MainView_NightlyBuildsUpdate" xml:space="preserve">
     <value>Λήψη Eκδόσεων Aνάπτυξης (HTTPS)</value>
   </data>
+  <data name="OptionsView_EnableQuicksyncHyperEncode" xml:space="preserve">
+    <value>Ενεργοποίηση Κωδικοποίησης QuickSync Deep Link Hyper </value>
+  </data>
+  <data name="OptionsView_HyperEncodeDescription" xml:space="preserve">
+    <value>Προτιμά τη χρήση πολλαπλών μηχανών πολυμέσων για την επιτάχυνση μιας μεμονωμένης κωδικοποίησης όπου υποστηρίζεται. Απενεργοποιήστε για να επιτρέψετε την εξισορρόπηση φορτίου πολλαπλών παράλληλων κωδικοποιήσεων σε μηχανές πολυμέσων.</value>
+  </data>
   <data name="MainView_OpenHandBrake" xml:space="preserve">
     <value>Ανοίξτε το HandBrake</value>
   </data>

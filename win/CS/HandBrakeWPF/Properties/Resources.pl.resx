@@ -2597,6 +2597,12 @@ Obsługiwane są tylko pliki kolejek z bieżącej wersji.</value>
   <data name="MainView_NightlyBuildsUpdate" xml:space="preserve">
     <value>Pobierz kompilacje programistyczne (HTTPS)</value>
   </data>
+  <data name="OptionsView_EnableQuicksyncHyperEncode" xml:space="preserve">
+    <value>Włącz Hyper Encode QuickSync Deep Link</value>
+  </data>
+  <data name="OptionsView_HyperEncodeDescription" xml:space="preserve">
+    <value>Preferuje korzystanie z wielu silników multimedialnych w celu przyspieszenia pojedynczego kodowania, jeśli jest obsługiwane. Wyłącz, aby zezwolić na równoważenie obciążenia wielu równoległych kodowań w silnikach multimediów.</value>
+  </data>
   <data name="MainView_OpenHandBrake" xml:space="preserve">
     <value>Otwórz HandBrake</value>
   </data>

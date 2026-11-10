@@ -2596,6 +2596,12 @@ Somente os arquivos da versão atual de fila são compatíveis.</value>
   <data name="MainView_NightlyBuildsUpdate" xml:space="preserve">
     <value>Baixar as versões de desenvolvimento (HTTPS)</value>
   </data>
+  <data name="OptionsView_EnableQuicksyncHyperEncode" xml:space="preserve">
+    <value>Ativar a hipercodificação do Deep Link do QuickSync</value>
+  </data>
+  <data name="OptionsView_HyperEncodeDescription" xml:space="preserve">
+    <value>Prefere o uso de vários mecanismos de mídia para acelerar uma única codificação, quando for compatível. Desative para permitir o balanceamento de carga de várias codificações paralelas entre os mecanismos de mídia.</value>
+  </data>
   <data name="MainView_OpenHandBrake" xml:space="preserve">
     <value>Abrir o HandBrake</value>
   </data>

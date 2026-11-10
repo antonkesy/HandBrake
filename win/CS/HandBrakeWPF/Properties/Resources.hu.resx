@@ -2598,6 +2598,12 @@ Csak az aktuális verzióból származó várólista fájlok támogatottak.</val
   <data name="MainView_NightlyBuildsUpdate" xml:space="preserve">
     <value>Fejlesztői buildek letöltése (HTTPS)</value>
   </data>
+  <data name="OptionsView_EnableQuicksyncHyperEncode" xml:space="preserve">
+    <value>A QuickSync Deep Link Hyper Encode engedélyezése</value>
+  </data>
+  <data name="OptionsView_HyperEncodeDescription" xml:space="preserve">
+    <value>Több médiamotor használatát részesíti előnyben egyetlen kódolás felgyorsításához, ahol támogatott. Tiltsa le, ha több párhuzamos kódolást szeretne engedélyezni a médiamotorok között.</value>
+  </data>
   <data name="MainView_OpenHandBrake" xml:space="preserve">
     <value>HandBrake megnyitása</value>
   </data>

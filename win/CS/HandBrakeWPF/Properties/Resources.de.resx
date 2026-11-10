@@ -2601,6 +2601,12 @@ Es werden nur Warteschlangen-Dateien der aktuellen Version unterstützt.</value>
   <data name="MainView_NightlyBuildsUpdate" xml:space="preserve">
     <value>Download Entwicklungsversion (HTTPS)</value>
   </data>
+  <data name="OptionsView_EnableQuicksyncHyperEncode" xml:space="preserve">
+    <value>QuickSync Deep Link Hyper-Encodierung aktivieren</value>
+  </data>
+  <data name="OptionsView_HyperEncodeDescription" xml:space="preserve">
+    <value>Bevorzugt die Verwendung mehrerer Medien-Engines, um eine einzelne Kodierung zu beschleunigen, sofern unterstützt. Deaktivieren Sie diese Option, um einen Lastausgleich für mehrere parallele Kodierungen über verschiedene Medien-Engines hinweg zu ermöglichen.</value>
+  </data>
   <data name="MainView_OpenHandBrake" xml:space="preserve">
     <value>HandBrake öffnen</value>
   </data>

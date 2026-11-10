@@ -2593,6 +2593,12 @@ Solu i schedarii di fila d’attesa da a versione attuale sò accettati.</value>
   <data name="MainView_NightlyBuildsUpdate" xml:space="preserve">
     <value>Scaricà e custruzzioni di sviluppu (HTTPS)</value>
   </data>
+  <data name="OptionsView_EnableQuicksyncHyperEncode" xml:space="preserve">
+    <value>Attivà QuickSync Deep Link Hyper Encode</value>
+  </data>
+  <data name="OptionsView_HyperEncodeDescription" xml:space="preserve">
+    <value>Preferisce l’impiegu di parechji mutori medià per accelerà una cudificazione unica quand’ella hè pussibule. Disattivà a pussibilità d’equilibrà e cariche di parechje cudificazioni in parallelu trà i mutori medià.</value>
+  </data>
   <data name="MainView_OpenHandBrake" xml:space="preserve">
     <value>Apre HandBrake</value>
   </data>

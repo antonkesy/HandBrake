@@ -37,7 +37,6 @@
  */
 
 #define HB_QSV_MAX_ADAPTERS             16
-#define HB_QSV_ASYNC_DEPTH_DEFAULT      4
 #define HB_QSV_AVC_DECODER_WIDTH_MAX    4096
 #define HB_QSV_AVC_DECODER_HEIGHT_MAX   4096
 
@@ -55,7 +54,9 @@ typedef struct
     char name[128];
     int  encoders;      // QSV_CODEC_* encoders that can be opened
     int  lowpower;      // QSV_CODEC_* encoders that can be opened with low_power=1
-    int  icq;           // QSV_CODEC_* encoders that can be opened in ICQ mode
+    int  icq;           // QSV_CODEC_* encoders that can use ICQ
+    int  icq_lowpower;  // QSV_CODEC_* encoders that can use ICQ with low_power=1
+    int  hyper_encode;  // QSV_CODEC_* encoders that can use Hyper Encode
     int  decoders;      // QSV_CODEC_* decoders exposed by the driver
 } hb_qsv_adapter_t;
 
@@ -96,9 +97,14 @@ static int codec_from_vcodec(int vcodec)
     }
 }
 
+/*
+ * Open an encoder with the given options, low_power -1 leaves the choice
+ * to the runtime. The probes fail on purpose, so the caller silences the
+ * FFmpeg logs.
+ */
 static int probe_encoder(AVBufferRef *device, const char *codec_name,
                          enum AVPixelFormat pix_fmt, const char *profile,
-                         int low_power, int icq)
+                         int low_power, int icq, const AVDictionary *options)
 {
     const AVCodec *codec = avcodec_find_encoder_by_name(codec_name);
     if (codec == NULL)
@@ -112,6 +118,7 @@ static int probe_encoder(AVBufferRef *device, const char *codec_name,
     {
         return 0;
     }
+    av_dict_copy(&av_opts, options, 0);
 
     context->width         = 640;
     context->height        = 480;
@@ -127,9 +134,9 @@ static int probe_encoder(AVBufferRef *device, const char *codec_name,
     {
         context->bit_rate = 2000000;
     }
-    if (low_power)
+    if (low_power >= 0)
     {
-        av_dict_set(&av_opts, "low_power", "1", 0);
+        av_dict_set_int(&av_opts, "low_power", low_power, 0);
     }
     if (profile)
     {
@@ -169,21 +176,30 @@ static void probe_encoders(AVBufferRef *device, hb_qsv_adapter_t *adapter)
         const char *name    = encoders[i].name;
         const char *profile = encoders[i].profile;
 
-        if (probe_encoder(device, name, encoders[i].pix_fmt, profile, 1, 1))
+        const enum AVPixelFormat pix_fmt = encoders[i].pix_fmt;
+
+        // low power (VDENC) encoder, ICQ isn't supported by all of them
+        if (probe_encoder(device, name, pix_fmt, profile, 1, 1, NULL))
+        {
+            adapter->lowpower     |= codec;
+            adapter->icq_lowpower |= codec;
+        }
+        else if (probe_encoder(device, name, pix_fmt, profile, 1, 0, NULL))
+        {
+            adapter->lowpower     |= codec;
+        }
+
+        // the encoder the runtime picks by default
+        if (probe_encoder(device, name, pix_fmt, profile, -1, 1, NULL))
         {
             adapter->encoders |= codec;
-            adapter->lowpower |= codec;
             adapter->icq      |= codec;
         }
-        else if (probe_encoder(device, name, encoders[i].pix_fmt, profile, 0, 1))
-        {
-            adapter->encoders |= codec;
-            adapter->icq      |= codec;
-        }
-        else if (probe_encoder(device, name, encoders[i].pix_fmt, profile, 0, 0))
+        else if (probe_encoder(device, name, pix_fmt, profile, -1, 0, NULL))
         {
             adapter->encoders |= codec;
         }
+        adapter->encoders |= adapter->lowpower & codec;
     }
 
     av_log_set_level(log_level);
@@ -316,6 +332,105 @@ static void workaround_disable_extbrc(AVDictionary **av_opts)
     }
     av_dict_set(av_opts, "extbrc", "0", 0);
 }
+
+/*
+ * Legacy defaults: the libvpl code picked a few defaults by hardware
+ * generation, which FFmpeg doesn't expose. The generation is estimated
+ * from the first features that came with it:
+ * - Ice Lake (Gen 11): low power (VDENC) H.265 encoder
+ * - Tiger Lake (Gen 12): AV1 decoder
+ */
+enum
+{
+    QSV_GENERATION_OLDER,
+    QSV_GENERATION_ICL,
+    QSV_GENERATION_TGL,
+};
+
+static int legacy_generation(const hb_qsv_adapter_t *adapter)
+{
+    if (adapter->decoders & QSV_CODEC_AV1)
+    {
+        return QSV_GENERATION_TGL;
+    }
+    if (adapter->lowpower & QSV_CODEC_H265)
+    {
+        return QSV_GENERATION_ICL;
+    }
+    return QSV_GENERATION_OLDER;
+}
+
+// deeper asynchronous pipeline from Ice Lake on
+static int legacy_default_async_depth(const hb_qsv_adapter_t *adapter)
+{
+    return legacy_generation(adapter) >= QSV_GENERATION_ICL ? 6 : 4;
+}
+
+// 7 B-frames for H.265 and AV1 from Tiger Lake on, 3 otherwise
+static int legacy_default_gop_ref_dist(const hb_qsv_adapter_t *adapter, int codec)
+{
+    if ((codec & (QSV_CODEC_H265 | QSV_CODEC_H265_10 | QSV_CODEC_AV1)) &&
+        legacy_generation(adapter) >= QSV_GENERATION_TGL)
+    {
+        return 8;
+    }
+    return 4;
+}
+
+/*
+ * Hyper Encode (Deep Link): one encode split between an integrated and a
+ * discrete Intel adapter. Deprecated by Intel, Windows (D3D11) only and
+ * limited to the low power H.264 and H.265 encoders, so it's only probed
+ * with two Intel adapters or more. The parameters match the ones Hyper
+ * Encode needs, see qsvenc.c.
+ */
+#define HB_QSV_HYPER_ENCODE_GOP_SIZE_MAX     60
+#define HB_QSV_HYPER_ENCODE_ASYNC_DEPTH_MIN  60
+
+static void apply_hyper_encode(const hb_job_t *job, AVCodecContext *context,
+                               AVDictionary **av_opts, const char *mode)
+{
+    av_dict_set(av_opts, "dual_gfx", mode, 0);
+    av_dict_set(av_opts, "low_power", "1", 0);
+    av_dict_set(av_opts, "idr_interval", job->vcodec == HB_VCODEC_FFMPEG_QSV_H264 ? "0" : "1", 0);
+    context->gop_size = FFMIN(context->gop_size, HB_QSV_HYPER_ENCODE_GOP_SIZE_MAX);
+    av_dict_set_int(av_opts, "async_depth",
+                    FFMAX(job->hw_device_async_depth, HB_QSV_HYPER_ENCODE_ASYNC_DEPTH_MIN), 0);
+    hb_log("encavcodec: Hyper Encode mode: %s", mode);
+}
+
+#if defined(_WIN32) || defined(__MINGW32__)
+static void probe_hyper_encode(AVBufferRef *device, hb_qsv_adapter_t *adapter)
+{
+    AVDictionary *av_opts = NULL;
+    av_dict_set(&av_opts, "dual_gfx", "on", 0);
+    av_dict_set_int(&av_opts, "g", HB_QSV_HYPER_ENCODE_GOP_SIZE_MAX, 0);
+    av_dict_set_int(&av_opts, "async_depth", HB_QSV_HYPER_ENCODE_ASYNC_DEPTH_MIN, 0);
+
+    int log_level = av_log_get_level();
+    av_log_set_level(AV_LOG_QUIET);
+
+    // H.264: closed GOP without B-frames, so that an older iGPU can keep up
+    av_dict_set(&av_opts, "idr_interval", "0", 0);
+    av_dict_set(&av_opts, "bf", "0", 0);
+    if (probe_encoder(device, "h264_qsv", AV_PIX_FMT_NV12, NULL, 1, 0, av_opts))
+    {
+        adapter->hyper_encode |= QSV_CODEC_H264;
+    }
+
+    // H.265: strict GOP
+    av_dict_set(&av_opts, "idr_interval", "1", 0);
+    av_dict_set(&av_opts, "bf", NULL, 0);
+    if (probe_encoder(device, "hevc_qsv", AV_PIX_FMT_NV12, NULL, 1, 0, av_opts))
+    {
+        adapter->hyper_encode |= QSV_CODEC_H265 | QSV_CODEC_H265_10;
+    }
+
+    av_log_set_level(log_level);
+    av_dict_free(&av_opts);
+}
+
+#endif
 
 #if defined(_WIN32) || defined(__MINGW32__)
 
@@ -489,6 +604,7 @@ static int open_adapter(int index, hb_qsv_adapter_t *adapter, AVBufferRef **chil
 
 static void make_adapters_list(void)
 {
+    AVBufferRef *devices[HB_QSV_MAX_ADAPTERS] = { 0 };
     int best_score = -1;
 
     for (int i = 0; i < HB_QSV_MAX_ADAPTERS; i++)
@@ -514,12 +630,12 @@ static void make_adapters_list(void)
                 adapter.decoders |= QSV_CODEC_VVC;
             }
 #endif
-            av_buffer_unref(&device);
         }
         av_buffer_unref(&child);
 
         if (adapter.encoders == 0)
         {
+            av_buffer_unref(&device);
             continue;
         }
 
@@ -534,7 +650,19 @@ static void make_adapters_list(void)
         int *index = malloc(sizeof(int));
         *index = adapter.index;
         hb_list_add(g_adapters_list, index);
+        devices[g_adapters_count] = device;
         g_adapters[g_adapters_count++] = adapter;
+    }
+
+    for (int i = 0; i < g_adapters_count; i++)
+    {
+#if defined(_WIN32) || defined(__MINGW32__)
+        if (g_adapters_count > 1)
+        {
+            probe_hyper_encode(devices[i], &g_adapters[i]);
+        }
+#endif
+        av_buffer_unref(&devices[i]);
     }
 }
 
@@ -598,6 +726,12 @@ int hb_qsv_get_adapter_index(void)
     return g_default_adapter_index;
 }
 
+int hb_qsv_hyper_encode_available(int adapter_index)
+{
+    const hb_qsv_adapter_t *adapter = get_adapter(adapter_index);
+    return adapter != NULL && adapter->hyper_encode != 0;
+}
+
 int hb_qsv_video_encoder_is_available(int encoder)
 {
     for (int i = 0; i < g_adapters_count; i++)
@@ -617,11 +751,13 @@ static void log_encoder(const hb_qsv_adapter_t *adapter, const char *name, int c
         hb_log(" - %s encoder: no", name);
         return;
     }
-    hb_log(" - %s encoder: yes%s%s%s", name,
+    hb_log(" - %s encoder: yes%s%s%s%s%s", name,
            codec_10bit == 0                ? "" :
            adapter->encoders & codec_10bit ? " (8bit: yes, 10bit: yes)" : " (8bit: yes, 10bit: no)",
-           adapter->lowpower & codec ? " lowpower" : "",
-           adapter->icq      & codec ? " icq"      : "");
+           adapter->lowpower     & codec ? " lowpower"     : "",
+           adapter->icq          & codec ? " icq"          : "",
+           adapter->icq_lowpower & codec ? " icq+lowpower" : "",
+           adapter->hyper_encode & codec ? " hyperencode"  : "");
 }
 
 void hb_qsv_info_print(void)
@@ -695,10 +831,31 @@ int hb_qsv_decode_is_codec_supported(int adapter_index, int codec_id, int pix_fm
     }
 }
 
-static int has_icq(uint32_t codec)
+/*
+ * Low power policy: Windows prefers the low power (VDENC) encoder,
+ * Linux the runtime default. Returns the low_power option value,
+ * -1 to leave it to the runtime.
+ */
+static int default_low_power(const hb_qsv_adapter_t *adapter, int codec)
+{
+#if defined(_WIN32) || defined(__MINGW32__)
+    return adapter->lowpower & codec ? 1 : -1;
+#else
+    return adapter->lowpower & codec ? 0 : -1;
+#endif
+}
+
+static int adapter_has_icq(const hb_qsv_adapter_t *adapter, int codec, int low_power)
+{
+    return low_power == 1 ? (adapter->icq_lowpower & codec) != 0 :
+                            (adapter->icq          & codec) != 0;
+}
+
+static int has_icq(uint32_t vcodec)
 {
     const hb_qsv_adapter_t *adapter = get_adapter(g_default_adapter_index);
-    return adapter != NULL && (adapter->icq & codec_from_vcodec(codec));
+    const int codec = codec_from_vcodec(vcodec);
+    return adapter != NULL && adapter_has_icq(adapter, codec, default_low_power(adapter, codec));
 }
 
 const char * hb_qsv_video_quality_get_name(uint32_t codec)
@@ -755,6 +912,21 @@ static void parse_pipeline_options(hb_job_t *job)
         {
             snprintf(job->qsv_ctx->vpp_scale_mode, sizeof(job->qsv_ctx->vpp_scale_mode), "%s", value);
         }
+        else if (!strcasecmp(key, "memory-type"))
+        {
+            if (!strcasecmp(value, "system"))
+            {
+                job->qsv_ctx->system_memory = 1;
+            }
+            else if (!strcasecmp(value, "video"))
+            {
+                job->qsv_ctx->system_memory = 0;
+            }
+            else
+            {
+                hb_log("qsv: bad memory-type %s, use system or video", value);
+            }
+        }
         free(value);
     }
     hb_dict_free(&options);
@@ -774,7 +946,7 @@ int hb_qsv_setup_job(hb_job_t *job)
     parse_pipeline_options(job);
     if (job->hw_device_async_depth <= 0)
     {
-        job->hw_device_async_depth = HB_QSV_ASYNC_DEPTH_DEFAULT;
+        job->hw_device_async_depth = legacy_default_async_depth(get_adapter(job->hw_device_index));
     }
     hb_log("qsv: adapter with index %d has been selected", job->hw_device_index);
 
@@ -787,7 +959,34 @@ int hb_qsv_setup_job(hb_job_t *job)
         job->hw_decode &= ~HB_DECODE_QSV;
     }
 
+    // system memory: decode with QSV, but filter and encode from system memory
+    if ((job->hw_decode & HB_DECODE_QSV) && job->qsv_ctx->system_memory)
+    {
+        job->hw_decode |= HB_DECODE_FORCE_HW;
+    }
+
     return 0;
+}
+
+int hb_qsv_full_path_allowed(const hb_job_t *job)
+{
+    return job->qsv_ctx == NULL || !job->qsv_ctx->system_memory;
+}
+
+void hb_qsv_set_frame_field_order(const hb_job_t *job, AVFrame *frame)
+{
+    switch (job->qsv_ctx != NULL ? job->qsv_ctx->field_order : HB_QSV_FIELD_ORDER_PROGRESSIVE)
+    {
+        case HB_QSV_FIELD_ORDER_TFF:
+            frame->flags |= AV_FRAME_FLAG_INTERLACED | AV_FRAME_FLAG_TOP_FIELD_FIRST;
+            break;
+        case HB_QSV_FIELD_ORDER_BFF:
+            frame->flags |=  AV_FRAME_FLAG_INTERLACED;
+            frame->flags &= ~AV_FRAME_FLAG_TOP_FIELD_FIRST;
+            break;
+        default:
+            break;
+    }
 }
 
 /*
@@ -842,22 +1041,17 @@ int hb_qsv_apply_encoder_options(hb_job_t *job, AVCodecContext *context, AVDicti
 
     const int full_path = job->hw_pix_fmt == AV_PIX_FMT_QSV;
 
-    int   icq            = adapter != NULL && (adapter->icq & codec);
+    int   low_power      = adapter != NULL ? default_low_power(adapter, codec) : -1;
+    int   force_cqp      = 0;
     int   lookahead      = 0;
+    int   field_order    = HB_QSV_FIELD_ORDER_PROGRESSIVE;
+    const char *hyper_encode = NULL;
     int   la_depth       = -1;
     int   gop_ref_dist   = -1;
     int   cqp_offsets[3] = { 0, 2, 4 };
     int   vbv_maxrate    = 0;
     int   vbv_bufsize    = 0;
     float vbv_init       = 0;
-
-#if defined(_WIN32) || defined(__MINGW32__)
-    // prefer the fixed function (VDENC) encoder on Windows
-    if (adapter != NULL && (adapter->lowpower & codec))
-    {
-        av_dict_set(av_opts, "low_power", "1", 0);
-    }
-#endif
 
     // a 2 seconds GOP, keyint overrides it
     context->gop_size = FFMIN((int)((double)job->orig_vrate.num / job->orig_vrate.den * 2 + 0.5), 120);
@@ -912,13 +1106,44 @@ int hb_qsv_apply_encoder_options(hb_job_t *job, AVCodecContext *context, AVDicti
         }
 
         if (!strcasecmp(key, "gpu")         || !strcasecmp(key, "async-depth") ||
-            !strcasecmp(key, "scalingmode") || !strcasecmp(key, "vpp-sm"))
+            !strcasecmp(key, "scalingmode") || !strcasecmp(key, "vpp-sm")      ||
+            !strcasecmp(key, "memory-type"))
         {
             // already consumed by hb_qsv_setup_job()
         }
         else if (!strcasecmp(key, "force-cqp"))
         {
-            icq = icq && !option_bool(value);
+            force_cqp = option_bool(value);
+        }
+        else if (!strcasecmp(key, "tff") || !strcasecmp(key, "interlaced") || !strcasecmp(key, "bff"))
+        {
+            if (codec != QSV_CODEC_H264)
+            {
+                hb_log("encavcodec: %s is only supported by the H.264 encoder", key);
+            }
+            else if (option_bool(value))
+            {
+                field_order = !strcasecmp(key, "bff") ? HB_QSV_FIELD_ORDER_BFF : HB_QSV_FIELD_ORDER_TFF;
+            }
+            else
+            {
+                field_order = HB_QSV_FIELD_ORDER_PROGRESSIVE;
+            }
+        }
+        else if (!strcasecmp(key, "hyperencode"))
+        {
+            if (strcasecmp(value, "off") && strcasecmp(value, "on") && strcasecmp(value, "adaptive"))
+            {
+                hb_log("encavcodec: bad hyperencode mode %s, use off, on or adaptive", value);
+            }
+            else if (strcasecmp(value, "off") && (adapter == NULL || (adapter->hyper_encode & codec) == 0))
+            {
+                hb_log("encavcodec: hyperencode is not supported by this adapter");
+            }
+            else
+            {
+                hyper_encode = !strcasecmp(value, "off") ? NULL : value;
+            }
         }
         else if (!strcasecmp(key, "cqp-offset-i"))
         {
@@ -960,7 +1185,7 @@ int hb_qsv_apply_encoder_options(hb_job_t *job, AVCodecContext *context, AVDicti
             }
             else
             {
-                av_dict_set(av_opts, "low_power", option_bool(value) ? "1" : "0", 0);
+                low_power = option_bool(value);
             }
         }
         else if (!strcasecmp(key, "gop-ref-dist"))
@@ -987,6 +1212,31 @@ int hb_qsv_apply_encoder_options(hb_job_t *job, AVCodecContext *context, AVDicti
         free(str);
     }
     hb_dict_free(&options);
+
+    if (hyper_encode != NULL)
+    {
+        apply_hyper_encode(job, context, av_opts, hyper_encode);
+        low_power = 1;
+    }
+    if (low_power >= 0)
+    {
+        av_dict_set_int(av_opts, "low_power", low_power, 0);
+    }
+
+    // interlaced encoding, the field order is set on each frame
+    if (field_order != HB_QSV_FIELD_ORDER_PROGRESSIVE)
+    {
+        context->flags      |= AV_CODEC_FLAG_INTERLACED_DCT | AV_CODEC_FLAG_INTERLACED_ME;
+        context->field_order = field_order == HB_QSV_FIELD_ORDER_TFF ? AV_FIELD_TT : AV_FIELD_BB;
+        hb_log("encavcodec: interlaced encoding, %s field first",
+               field_order == HB_QSV_FIELD_ORDER_TFF ? "top" : "bottom");
+    }
+    if (job->qsv_ctx != NULL)
+    {
+        job->qsv_ctx->field_order = field_order;
+    }
+
+    const int icq = !force_cqp && adapter != NULL && adapter_has_icq(adapter, codec, low_power);
 
     if (job->vquality > HB_INVALID_VIDEO_QUALITY)
     {
@@ -1024,11 +1274,16 @@ int hb_qsv_apply_encoder_options(hb_job_t *job, AVCodecContext *context, AVDicti
         }
     }
 
-    if ((icq || lookahead) && (vbv_maxrate > 0 || vbv_bufsize > 0))
+    if (((job->vquality > HB_INVALID_VIDEO_QUALITY && icq) || lookahead) &&
+        (vbv_maxrate > 0 || vbv_bufsize > 0))
     {
         hb_log("encavcodec: %s rate control, ignoring VBV", lookahead ? "lookahead" : "ICQ");
     }
 
+    if (gop_ref_dist <= 0 && adapter != NULL)
+    {
+        gop_ref_dist = legacy_default_gop_ref_dist(adapter, codec);
+    }
     if (lookahead)
     {
         workaround_lookahead_limits(full_path, &la_depth, &gop_ref_dist);

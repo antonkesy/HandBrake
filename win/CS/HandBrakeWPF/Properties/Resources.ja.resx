@@ -2597,6 +2597,12 @@ VLCとMPC-HCがサポートされています。他のプレイヤーではお�
   <data name="MainView_NightlyBuildsUpdate" xml:space="preserve">
     <value>開発用ビルドをダウンロード (HTTPS)</value>
   </data>
+  <data name="OptionsView_EnableQuicksyncHyperEncode" xml:space="preserve">
+    <value>QuickSync Deep Link Hyper Encodeを有効にする</value>
+  </data>
+  <data name="OptionsView_HyperEncodeDescription" xml:space="preserve">
+    <value>サポートされていれば単一エンコードに複数メディアエンジンを使用することで速度向上させようとします。無効にするとメディアエンジン間の並列エンコードの負荷バランスを取ります。</value>
+  </data>
   <data name="MainView_OpenHandBrake" xml:space="preserve">
     <value>HandBrakeを開く</value>
   </data>
