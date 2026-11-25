@@ -26,6 +26,9 @@ endif
 ifndef GCC.lto
     GCC.lto     = none
 endif
+ifndef GCC.sanitize
+    GCC.sanitize = none
+endif
 GCC.D       =
 GCC.I       =
 GCC.muldefs = 0
@@ -79,6 +82,10 @@ GCC.args.lto.none          =
 GCC.args.lto.off           = -fno-lto
 GCC.args.lto.on            = -flto
 GCC.args.lto.thin          = -flto=thin
+GCC.args.sanitize.none              =
+GCC.args.sanitize.address           = -fsanitize=address -fno-omit-frame-pointer
+GCC.args.sanitize.undefined         = -fsanitize=undefined -fno-omit-frame-pointer
+GCC.args.sanitize.address-undefined = -fsanitize=address,undefined -fno-omit-frame-pointer
 GCC.args.D                 = -D$(1)
 GCC.args.I                 = -I$(1)
 GCC.args.muldefs           = -Wl,--allow-multiple-definition
@@ -134,6 +141,7 @@ define import.GCC
     $(1).GCC.O       = $$(GCC.O)
     $(1).GCC.cpu     = $$(GCC.cpu)
     $(1).GCC.lto     = $$(GCC.lto)
+    $(1).GCC.sanitize = $$(GCC.sanitize)
     $(1).GCC.D       = $$(GCC.D)
     $(1).GCC.I       = $$(GCC.I)
     $(1).GCC.muldefs = $$(GCC.muldefs)
@@ -181,6 +189,10 @@ define import.GCC
     $(1).GCC.args.lto.off   = $$(GCC.args.lto.off)
     $(1).GCC.args.lto.on    = $$(GCC.args.lto.on)
     $(1).GCC.args.lto.thin  = $$(GCC.args.lto.thin)
+    $(1).GCC.args.sanitize.none              = $$(GCC.args.sanitize.none)
+    $(1).GCC.args.sanitize.address           = $$(GCC.args.sanitize.address)
+    $(1).GCC.args.sanitize.undefined         = $$(GCC.args.sanitize.undefined)
+    $(1).GCC.args.sanitize.address-undefined = $$(GCC.args.sanitize.address-undefined)
     $(1).GCC.args.D         = $$(GCC.args.D)
     $(1).GCC.args.I         = $$(GCC.args.I)
     $(1).GCC.args.muldefs   = $$(GCC.args.muldefs)
@@ -208,19 +220,19 @@ define import.GCC
     $(1).GCC.o = -o $$(3)
 
     # FUNCTION: C precompiled headers
-    $(1).GCC.H_O.args = !gcc ?c_std ?pipe ?ML ?H *W *archs *sysroot *minver ?vis ?pic .g .O ?extra ?extra.h_o .cpu .lto *D *I !c !o
+    $(1).GCC.H_O.args = !gcc ?c_std ?pipe ?ML ?H *W *archs *sysroot *minver ?vis ?pic .g .O ?extra ?extra.h_o .cpu .lto .sanitize *D *I !c !o
     $(1).GCC.H_O = $$(call fn.ARGS,$(1).GCC,$$($(1).GCC.H_O.args),$$(1),$$(2))
 
     # FUNCTION: C compile source
-    $(1).GCC.C_O.args = !gcc ?c_std ?pipe ?ML ?H *W *archs *sysroot *minver ?vis ?pic .g .O ?extra ?extra.c_o .cpu .lto *D *I !c !o
+    $(1).GCC.C_O.args = !gcc ?c_std ?pipe ?ML ?H *W *archs *sysroot *minver ?vis ?pic .g .O ?extra ?extra.c_o .cpu .lto .sanitize *D *I !c !o
     $(1).GCC.C_O = $$(call fn.ARGS,$(1).GCC,$$($(1).GCC.C_O.args),$$(1),$$(2))
 
     # FUNCTION: C++ precompile headers
-    $(1).GCC.HPP_O.args = !gxx ?cxx_std ?pipe ?ML ?H *W *archs *sysroot *minver ?vis ?pic .g .O ?extra ?extra.hpp_o .cpu .lto *D *I !c !o
+    $(1).GCC.HPP_O.args = !gxx ?cxx_std ?pipe ?ML ?H *W *archs *sysroot *minver ?vis ?pic .g .O ?extra ?extra.hpp_o .cpu .lto .sanitize *D *I !c !o
     $(1).GCC.HPP_O = $$(call fn.ARGS,$(1).GCC,$$($(1).GCC.HPP_O.args),$$(1),$$(2))
 
     # FUNCTION: C++ compile source
-    $(1).GCC.CPP_O.args = !gxx ?cxx_std ?pipe ?ML ?H *W *archs *sysroot *minver ?vis ?pic .g .O ?extra ?extra.cpp_o .cpu .lto *D *I !c !o
+    $(1).GCC.CPP_O.args = !gxx ?cxx_std ?pipe ?ML ?H *W *archs *sysroot *minver ?vis ?pic .g .O ?extra ?extra.cpp_o .cpu .lto .sanitize *D *I !c !o
     $(1).GCC.CPP_O = $$(call fn.ARGS,$(1).GCC,$$($(1).GCC.CPP_O.args),$$(1),$$(2))
 
     ###########################################################################
@@ -228,18 +240,18 @@ define import.GCC
     $(1).GCC.i = $$(4)
 
     # FUNCTION: C link dynamic-lib
-    $(1).GCC.DYLIB.args = !gcc ?c_std ?pipe ?strip ?dylib ?extra.dylib ?ML *W *archs *sysroot *minver ?vis ?pic .g .O ?extra .lto *D *I !o ?muldefs ?start !i *F *f *L *l !pkgconfig *i !a ?end
+    $(1).GCC.DYLIB.args = !gcc ?c_std ?pipe ?strip ?dylib ?extra.dylib ?ML *W *archs *sysroot *minver ?vis ?pic .g .O ?extra .lto .sanitize *D *I !o ?muldefs ?start !i *F *f *L *l !pkgconfig *i !a ?end
     $(1).GCC.DYLIB = $$(call fn.ARGS,$(1).GCC,$$($(1).GCC.DYLIB.args),$$(1),$$(2))
 
     # FUNCTION: C link executable
-    $(1).GCC.EXE.args = !gcc ?c_std ?pipe ?strip ?extra.exe ?ML *W *archs *sysroot *minver ?vis ?pic .g .O ?extra .lto *D *I !o ?muldefs ?start !i *F *f *L *l !pkgconfig *i !a ?end
+    $(1).GCC.EXE.args = !gcc ?c_std ?pipe ?strip ?extra.exe ?ML *W *archs *sysroot *minver ?vis ?pic .g .O ?extra .lto .sanitize *D *I !o ?muldefs ?start !i *F *f *L *l !pkgconfig *i !a ?end
     $(1).GCC.EXE = $$(call fn.ARGS,$(1).GCC,$$($(1).GCC.EXE.args),$$(1),$$(2))
 
     # FUNCTION: C++ link dynamic-lib
-    $(1).GCC.DYLIB++.args = !gxx ?cxx_std ?pipe ?strip ?dylib ?extra.dylib++ ?ML *W *archs *sysroot *minvers ?vis ?pic .g .O ?extra .lto *D *I !o ?muldefs ?start !i *F *f *L *l !pkgconfig *i !a ?end
+    $(1).GCC.DYLIB++.args = !gxx ?cxx_std ?pipe ?strip ?dylib ?extra.dylib++ ?ML *W *archs *sysroot *minvers ?vis ?pic .g .O ?extra .lto .sanitize *D *I !o ?muldefs ?start !i *F *f *L *l !pkgconfig *i !a ?end
     $(1).GCC.DYLIB++ = $$(call fn.ARGS,$(1).GCC,$$($(1).GCC.DYLIB++.args),$$(1),$$(2))
 
     # FUNCTION: C++ link executable
-    $(1).GCC.EXE++.args = !gxx ?cxx_std ?pipe ?strip ?extra.exe++ ?ML *W *archs *sysroot *minver ?vis ?pic .g .O ?extra .lto *D *I !o ?muldefs ?start !i *F *f *L *l !pkgconfig *i !a ?end
+    $(1).GCC.EXE++.args = !gxx ?cxx_std ?pipe ?strip ?extra.exe++ ?ML *W *archs *sysroot *minver ?vis ?pic .g .O ?extra .lto .sanitize *D *I !o ?muldefs ?start !i *F *f *L *l !pkgconfig *i !a ?end
     $(1).GCC.EXE++ = $$(call fn.ARGS,$(1).GCC,$$($(1).GCC.EXE++.args),$$(1),$$(2))
 endef

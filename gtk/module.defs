@@ -48,6 +48,14 @@ else
     GTK.CONFIGURE.extra += -Db_lto=false
 endif
 
+ifeq (address-undefined,$(GCC.sanitize))
+    GTK.CONFIGURE.extra += -Db_sanitize=address,undefined
+else ifneq (,$(filter address undefined,$(GCC.sanitize)))
+    GTK.CONFIGURE.extra += -Db_sanitize=$(GCC.sanitize)
+else
+    GTK.CONFIGURE.extra += -Db_sanitize=none
+endif
+
 ifeq (1,$(FEATURE.fdk_aac))
     GTK.CONFIGURE.extra += -Dfdk-aac=enabled
 else

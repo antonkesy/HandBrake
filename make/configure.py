@@ -1367,6 +1367,7 @@ def createCLI( cross = None ):
     arch.mode.cli_add_argument( grp, '--arch' )
     cpuMode.cli_add_argument( grp, '--cpu' )
     ltoMode.cli_add_argument( grp, '--lto' )
+    sanitizeMode.cli_add_argument( grp, '--sanitize' )
     grp.add_argument( '--cross', default=None, action='store', metavar='SPEC',
         help='specify GCC cross-compilation spec' )
     cli.add_argument_group( grp )
@@ -1732,6 +1733,7 @@ try:
 
     cpuMode = SelectMode( 'cpu', ('none','none'), ('native','native') )
     ltoMode = SelectMode( 'lto', ('none','none'), ('off','off'), ('on','on'), ('thin','thin') )
+    sanitizeMode = SelectMode( 'sanitize', ('none','none'), ('address','address'), ('undefined','undefined'), ('address-undefined','address-undefined') )
 
     # run host tuple and arch actions
     host_tuple = HostTupleAction(cross,arch_gcc,xcode_opts)
@@ -2170,6 +2172,7 @@ int main()
     doc.add( 'GCC.O', optimizeMode.mode )
     doc.add( 'GCC.cpu', cpuMode.mode )
     doc.add( 'GCC.lto', ltoMode.mode )
+    doc.add( 'GCC.sanitize', sanitizeMode.mode )
     doc.addBlank()
     doc.addMake( '## include definitions' )
     doc.addMake( 'include $(SRC/)make/include/main.defs' )
