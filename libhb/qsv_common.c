@@ -2214,8 +2214,9 @@ int hb_qsv_setup_job(hb_job_t *job)
     // Make sure QSV Decode is only True if the selected QSV adapter supports decode
     if (job->hw_decode & HB_DECODE_QSV)
     {
+        // job->input_pix_fmt is not set yet, check the source pixel format
         int is_codec_supported = hb_qsv_decode_is_codec_supported(hb_qsv_get_adapter_index(),
-            job->title->video_codec_param, job->input_pix_fmt,
+            job->title->video_codec_param, job->title->pix_fmt,
             job->title->geometry.width, job->title->geometry.height);
 
         if (is_codec_supported == 0)
