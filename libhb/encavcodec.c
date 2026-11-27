@@ -352,7 +352,7 @@ int encavcodecInit( hb_work_object_t * w, hb_job_t * job )
     char reason[80];
     char * codec_name = NULL;
     const AVCodec * codec = NULL;
-    AVCodecContext * context;
+    AVCodecContext * context = NULL;
     AVRational fps;
     AVDictionary *av_opts = NULL;
     const AVRational *frame_rates = NULL;
@@ -623,28 +623,24 @@ int encavcodecInit( hb_work_object_t * w, hb_job_t * job )
 
     if (apply_encoder_level(context, &av_opts, job->vcodec, job->encoder_level))
     {
-        av_free(context);
         ret = 1;
         goto done;
     }
 
     if (apply_encoder_preset(job->vcodec, context, &av_opts, job->encoder_preset))
     {
-        av_free( context );
         ret = 1;
         goto done;
     }
 
     if (apply_encoder_tune(job->vcodec, &av_opts, job->encoder_tune))
     {
-        av_free(context);
         ret = 1;
         goto done;
     }
 
     if (apply_encoder_options(job, context, &av_opts))
     {
-        av_free( context );
         ret = 1;
         goto done;
     }
@@ -1425,6 +1421,7 @@ int encavcodecInit( hb_work_object_t * w, hb_job_t * job )
 
                     hb_error( "encavcodecInit: Failed to read %s (reason: %s)" , filename, reason);
                     free(filename);
+                    free(log);
                     ret = 1;
                     fclose( pv->file );
                     pv->file = NULL;
@@ -1507,6 +1504,13 @@ int encavcodecInit( hb_work_object_t * w, hb_job_t * job )
 
 done:
     av_dict_free(&av_opts);
+    if (ret && context != NULL)
+    {
+        // pv->context is not set yet, free the context here
+        free(context->stats_in);
+        context->stats_in = NULL;
+        hb_avcodec_free_context(&context);
+    }
     return ret;
 }
 
