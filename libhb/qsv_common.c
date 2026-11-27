@@ -2155,7 +2155,12 @@ static int hb_qsv_parse_options(hb_job_t *job)
             else if (!strcasecmp(key, "memory-type"))
             {
                 hb_triplet_t *mode = NULL;
-                mode = hb_triplet4key(hb_qsv_memory_types, hb_value_get_string_xform(value));
+                char *str = hb_value_get_string_xform(value);
+                if (str != NULL)
+                {
+                    mode = hb_triplet4key(hb_qsv_memory_types, str);
+                    free(str);
+                }
                 if (!mode)
                 {
                     err = HB_QSV_PARAM_BAD_VALUE;
@@ -2169,7 +2174,12 @@ static int hb_qsv_parse_options(hb_job_t *job)
                      !strcasecmp(key, "vpp-sm"))
             {
                 hb_triplet_t *mode = NULL;
-                mode = hb_triplet4key(hb_qsv_vpp_scale_modes, hb_value_get_string_xform(value));
+                char *str = hb_value_get_string_xform(value);
+                if (str != NULL)
+                {
+                    mode = hb_triplet4key(hb_qsv_vpp_scale_modes, str);
+                    free(str);
+                }
                 if (!mode)
                 {
                     err = HB_QSV_PARAM_BAD_VALUE;
