@@ -1951,7 +1951,8 @@ hb_job_t* hb_dict_to_job( hb_handle_t * h, hb_dict_t *dict )
             }
             else if (importfile != NULL)
             {
-                sub_config.src_filename = strdup(importfile);
+                // hb_import_subtitle_add() makes a copy
+                sub_config.src_filename = importfile;
 
                 const char * lang = "und";
                 const char * srtcodeset = "UTF-8";
