@@ -5227,7 +5227,8 @@ static hb_dict_t * PreparePreset(const char *preset_name)
     }
     if (qsv_decode != -1)
     {
-        hw_decode = qsv_decode ? HB_DECODE_QSV : 0;
+        // Same as --enable-hw-decoding qsv
+        hw_decode = qsv_decode ? HB_DECODE_QSV | HB_DECODE_FORCE_HW : 0;
     }
 #endif
     if (hw_decode != -1)
