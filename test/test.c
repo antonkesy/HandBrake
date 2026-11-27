@@ -484,7 +484,6 @@ int RunQueueJob(hb_handle_t *h, hb_dict_t *job_dict)
 
     char * json_job;
     json_job = hb_value_get_json(job_dict);
-    hb_value_free(&job_dict);
     if (json_job == NULL)
     {
         fprintf(stderr, "Error in setting up job! Aborting.\n");
@@ -504,14 +503,15 @@ int RunQueueJob(hb_handle_t *h, hb_dict_t *job_dict)
 int RunQueue(hb_handle_t *h, const char *queue_import_name)
 {
     hb_value_t * queue = hb_value_read_json(queue_import_name);
+    int result = 0;
 
     if (hb_value_type(queue) == HB_VALUE_TYPE_DICT)
     {
-        return RunQueueJob(h, hb_dict_get(queue, "Job"));
+        result = RunQueueJob(h, hb_dict_get(queue, "Job"));
     }
     else if (hb_value_type(queue) == HB_VALUE_TYPE_ARRAY)
     {
-        int ii, count, result = 0;
+        int ii, count;
 
         count = hb_value_array_len(queue);
         for (ii = 0; ii < count; ii++)
@@ -527,14 +527,14 @@ int RunQueue(hb_handle_t *h, const char *queue_import_name)
                 break;
             }
         }
-        return result;
     }
     else
     {
         fprintf(stderr, "Error: Invalid queue file %s\n", queue_import_name);
-        return -1;
+        result = -1;
     }
-    return 0;
+    hb_value_free(&queue);
+    return result;
 }
 
 int main( int argc, char ** argv )
